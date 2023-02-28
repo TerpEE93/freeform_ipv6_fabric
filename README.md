@@ -1,4 +1,4 @@
-# ipv6_fabric
+# freeform_ipv6_fabric
 Apstra Freeform desgn to deploy an EVPN-VXLAN overlay on an IPv6-only underlay
 
 Built from Apstra 4.1.2
