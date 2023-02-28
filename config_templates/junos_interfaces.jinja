@@ -1,0 +1,39 @@
+{% set this_router = hostname %}
+{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources','devices') %}
+interfaces {
+{% for interface_name, iface in interfaces.iteritems() %}
+    replace:  {{ interface_name }} {
+        description "{{ iface['description'] }}";
+    {% if iface.part_of %}
+        gigether-options {
+            802.3ad {{ iface.part_of }};
+        }
+        {% continue %}
+    {% endif%}
+        unit 0 {
+    {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
+            family inet6 {
+                address {{ iface['ipv6_address'] }}/{{ iface['ipv6_prefixlen'] }};
+            }
+    {% endif %}
+    {% if 'mode_trunk' in iface.link_tags %}
+            family ethernet-switching {
+                interface-mode trunk;
+            }
+    {% endif %}
+    {% if 'mode_access' in iface.link_tags %}
+            family ethernet-switching {
+                interface-mode access;
+            }
+    {% endif %}
+        }
+    }
+{% endfor %}
+    replace: lo0 {
+        unit 0 {
+            family inet6 {
+                address {{ loopback_ipv6 }};
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+{% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
+{% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
+
+routing-options {
+{% if dev_router_id %}
+    router-id {{ dev_router_id[:-3] }};
+{% endif %}
+{% if local_asn %}
+    autonomous-system {{ local_asn }};
+{% endif %}
+    forwarding-table {
+        export PFE-LB;
+        ecmp-fast-reroute;
+        chained-composite-next-hop {
+            ingress {
+                evpn;
+            }
+        }
+    }
+}

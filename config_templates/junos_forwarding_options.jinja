@@ -1,0 +1,5 @@
+forwarding-options {
+{% if model[:15] == 'Juniper_QFX5120' %}
+    evpn-vxlan shared-tunnels;
+{% endif %}
+}

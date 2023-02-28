@@ -1,0 +1,12 @@
+{% set ae_list = interfaces.itervalues()|selectattr('if_type', 'eq', 'port_channel')|list %}
+debug {
+    /* This is the ae_list */
+    {{ ae_list }};
+{% for interface_name, iface in interfaces.iteritems() %}
+    /* */
+    interface_name: {{ interface_name }};
+    iface: {
+        {{ iface }};
+    }
+{% endfor %}
+}

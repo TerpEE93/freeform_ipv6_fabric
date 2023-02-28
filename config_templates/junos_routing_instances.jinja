@@ -1,0 +1,20 @@
+{% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
+{% if 'leaf' in system_tags %}
+replace: routing-instances {
+    VSWITCH {
+        instance-type mac-vrf;
+        protocols {
+            evpn {
+                encapsulation vxlan;
+            }
+        }
+        vtep-source-interface lo0.0 inet6;
+        service-type vlan-aware;
+        route-distinguisher {{ dev_router_id[:-3] }}:65534;
+        vrf-target {
+            target:100:100;
+            auto;
+        }
+    }
+}
+{% endif %}

@@ -1,0 +1,80 @@
+
+replace: policy-options {
+    policy-statement AllPodNetworks {
+        term AllPodNetworks-06 {
+            from {
+                family inet6;
+                protocol direct;
+            }
+            then {
+                community add DEFAULT_DIRECT_V6;
+                accept;
+            }
+        }
+        term AllPodNetworks-100 {
+            then reject;
+        }
+    }
+    policy-statement BGP-AOS-Policy {
+        term BGP-AOS-Policy-10 {
+            from policy AllPodNetworks;
+            then accept;
+        }
+        term BGP-AOS-Policy-100 {
+            then reject;
+        }
+    }
+    policy-statement EVPN_EXPORT {
+        term EVPN_EXPORT-4095 {
+            then accept;
+        }
+    }
+    policy-statement LEAF_TO_SPINE_EVPN_OUT {
+        term LEAF_TO_SPINE_EVPN_OUT-10 {
+            from {
+                protocol bgp;
+                community FROM_SPINE_EVPN_TIER;
+            }
+            then reject;
+        }
+        term LEAF_TO_SPINE_EVPN_OUT-20 {
+            then accept;
+        }
+    }
+    policy-statement LEAF_TO_SPINE_FABRIC_OUT {
+        term LEAF_TO_SPINE_FABRIC_OUT-10 {
+            from {
+                protocol bgp;
+                community FROM_SPINE_FABRIC_TIER;
+            }
+            then reject;
+        }
+        term LEAF_TO_SPINE_FABRIC_OUT-20 {
+            then accept;
+        }
+    }
+    policy-statement SPINE_TO_LEAF_EVPN_OUT {
+        term SPINE_TO_LEAF_EVPN_OUT-10 {
+            then {
+                community add FROM_SPINE_EVPN_TIER;
+                accept;
+            }
+        }
+    }
+    policy-statement SPINE_TO_LEAF_FABRIC_OUT {
+        term SPINE_TO_LEAF_FABRIC_OUT-10 {
+            then {
+                community add FROM_SPINE_FABRIC_TIER;
+                accept;
+            }
+        }
+    }
+    policy-statement PFE-LB {
+        then {
+            load-balance per-packet;
+        }
+    }
+    community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
+    community FROM_SPINE_EVPN_TIER members 0:14;
+    community FROM_SPINE_FABRIC_TIER members 0:15;
+}

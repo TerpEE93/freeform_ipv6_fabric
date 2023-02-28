@@ -1,0 +1,158 @@
+{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources','devices') %}
+{% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
+{% set bgp_ns = namespace(neighbor_asn=None) %}
+
+replace: protocols {
+    router-advertisement {
+{% for interface_name, iface in interfaces.iteritems() %}
+{% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
+        interface {{ interface_name }}.0 {
+            max-advertisement-interval 30;
+            min-advertisement-interval 10;
+        }
+{% endif %}
+{% endfor %}
+    }
+    lldp {
+        port-id-subtype interface-name;
+        port-description-type interface-description;
+        neighbour-port-info-display port-id;
+        interface all;
+    }
+    rstp {
+        bridge-priority 0;
+        bpdu-block-on-edge;
+    }
+    bgp {
+        log-updown;
+        graceful-restart;
+{% if 'leaf' in system_tags %}
+        group l3clos-l {
+            type external;
+            family inet6 {
+                unicast;
+            }
+            export ( LEAF_TO_SPINE_FABRIC_OUT && BGP-AOS-Policy );
+            multipath {
+                multiple-as;
+            }
+            bfd-liveness-detection {
+                minimum-interval 1000;
+                multiplier 3;
+            }
+            vpn-apply-export;
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if not iface.get('ipv6_address') %}
+        {% continue %}
+    {% endif %}
+    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+            neighbor {{ neighbor_interface.ipv6_address }} {
+                peer-as {{ bgp_ns.neighbor_asn }};
+            }
+    {% endfor %}
+{% endfor %}
+        }
+        group l3clos-l-evpn {
+            type external;
+            multipath {
+                multiple-as;
+            }
+            multihop {
+                no-nexthop-change;
+                ttl 1;
+            }
+            family evpn {
+                signaling {
+                    loops 2;
+                }
+            }
+            bfd-liveness-detection {
+                minimum-interval 3000;
+                multiplier 3;
+            }
+            vpn-apply-export;
+            local-address {{ loopback_ipv6[:-4] }};
+            export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if not iface.get('ipv6_address') %}
+        {% continue %}
+    {% endif %}
+    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+            neighbor {{ bgp_ns.neighbor_loopback[:-4] }} {
+                peer-as {{ bgp_ns.neighbor_asn }};
+            }
+    {% endfor %}
+{% endfor %}            
+        }
+{% endif %}
+{% if 'spine' in system_tags %}
+        group l3clos-s {
+            type external;
+            family inet6 {
+                unicast;
+            }
+            export ( SPINE_TO_LEAF_FABRIC_OUT && BGP-AOS-Policy );
+            multipath {
+                multiple-as;
+            }
+            bfd-liveness-detection {
+                minimum-interval 1000;
+                multiplier 3;
+            }
+            vpn-apply-export;
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if not iface.get('ipv6_address') %}
+        {% continue %}
+    {% endif %}
+    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+            neighbor {{ neighbor_interface.ipv6_address }} {
+                peer-as {{ bgp_ns.neighbor_asn }};
+            }
+    {% endfor %}
+{% endfor %}
+        }
+        group l3clos-s-evpn {
+            type external;
+            multipath {
+                multiple-as;
+            }
+            multihop {
+                no-nexthop-change;
+                ttl 1;
+            }
+            family evpn {
+                signaling;
+            }
+            bfd-liveness-detection {
+                minimum-interval 3000;
+                multiplier 3;
+            }
+            vpn-apply-export;
+            local-address {{ loopback_ipv6[:-4] }};
+            export ( LEAF_TO_SPINE_EVPN_OUT )
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if not iface.get('ipv6_address') %}
+        {% continue %}
+    {% endif %}
+    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+            neighbor {{ bgp_ns.neighbor_loopback[:-4] }} {
+                peer-as {{ bgp_ns.neighbor_asn }};
+            }
+    {% endfor %}
+{% endfor %}
+        }
+
+{% endif %}
+
+    }
+}
