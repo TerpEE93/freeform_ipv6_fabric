@@ -1,5 +1,26 @@
-forwarding-options {
-{% if model[:15] == 'Juniper_QFX5120' %}
-    evpn-vxlan shared-tunnels;
+{% set shared_tunnels = False %}
+{% set vxlan_overlay_ecmp = False %}
+
+{% if model is defined and model %}
+    {% if 'Juniper_QFX5110' in model or 'Juniper_QFX5120' in model or 'Juniper_EX4560' in model %}
+        {% set vxlan_overlay_ecmp = True %}
+    {% endif %}
+    {% if 'Juniper_QFX5' in model or 'Juniper_EX4' in model %}
+        {% set shared_tunnels = True %}
+    {% endif %}
 {% endif %}
+{% if shared_tunnels or vxlan_overlay_ecmp %}
+forwarding-options {
+    {% if vxlan_overlay_ecmp %}
+    vxlan-routing {
+        overlay-ecmp;
+    }
+    {% endif %}
+    {% if shared_tunnels %}
+    evpn-vxlan {
+        shared-tunnels;
+    }
+    {% endif %}
 }
+{% endif %}
+{# EOF #}

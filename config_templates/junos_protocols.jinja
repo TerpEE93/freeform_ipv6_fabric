@@ -87,7 +87,7 @@ replace: protocols {
                 peer-as {{ bgp_ns.neighbor_asn }};
             }
     {% endfor %}
-{% endfor %}            
+{% endfor %}
         }
 {% endif %}
 {% if 'spine' in system_tags %}
@@ -151,8 +151,7 @@ replace: protocols {
     {% endfor %}
 {% endfor %}
         }
-
 {% endif %}
-
     }
 }
+{# EOF #}

@@ -1,34 +1,71 @@
 {% set this_router = hostname %}
-{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources','devices') %}
+{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
+{% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
+{% for interface_name, intf_resources in interface_resources.iteritems() %}
+    {% for resource in intf_resources if resource['label'] == 'lacp' %}
+        {% for r in resource['resources'] %}
+            {% if r.get('value') and r.get('label') == 'esi_ids' %}
+                {% set esi_prefix = '00:01:00:00:' %}
+                {% set mac_address = '{:012X}'.format(r['value']|int) %}
+                {% set esi_address = esi_prefix + mac_address|to_mac_format('hyphen')|replace('-', ':') %}
+                {% do esi_lags.esi_intfs.update({interface_name: esi_address}) %}
+            {% endif %}
+            {% if r.get('value') and r.get('label') == 'lacp_system_ids' %}
+                {% set mac_address = '{:012X}'.format(r['value']|int + 10000) %}
+                {% set mac_address = mac_address|to_mac_format('hyphen')|replace('-', ':') %}
+                {% do esi_lags.lacp_system_ids.update({interface_name: mac_address}) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
 interfaces {
 {% for interface_name, iface in interfaces.iteritems() %}
-    replace:  {{ interface_name }} {
+    replace: {{ interface_name }} {
         description "{{ iface['description'] }}";
     {% if iface.part_of %}
-        gigether-options {
+        ether-options {
             802.3ad {{ iface.part_of }};
         }
         {% continue %}
-    {% endif%}
-        unit 0 {
+    {% endif %}
+    {% if iface.get('composed_of') %}
+        {% set esi_id = esi_lags.esi_intfs.get(interface_name) %}
+        {% set lacp_system_id = esi_lags.lacp_system_ids.get(interface_name) %}
+        {% if esi_id %}
+        esi {
+            {{esi_id}};
+            all-active;
+        }
+        {% endif %}
+        {% set lacp_mode = {'lacp_active': 'active', 'lacp_passive': 'passive'}.get(iface['lag_mode']) %}
+        {% if lacp_system_id %}
+        aggregated-ether-options {
+            lacp {
+                {{lacp_mode}};
+                system-id {{lacp_system_id}};
+            }
+        }
+        {% endif %}
+    {% endif %}
     {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
+        unit 0 {
             family inet6 {
                 address {{ iface['ipv6_address'] }}/{{ iface['ipv6_prefixlen'] }};
             }
-    {% endif %}
-    {% if 'mode_trunk' in iface.link_tags %}
-            family ethernet-switching {
-                interface-mode trunk;
-            }
-    {% endif %}
-    {% if 'mode_access' in iface.link_tags %}
-            family ethernet-switching {
-                interface-mode access;
-            }
-    {% endif %}
         }
+    {% elif 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+        {% set intf_mode = 'trunk' if 'mode_trunk' in iface.link_tags else 'access' %}
+        unit 0 {
+            family ethernet-switching {
+                interface-mode {{intf_mode}};
+            }
+        }
+    {% else %}
+        unit 0;
+    {% endif %}
     }
 {% endfor %}
+{% if loopback_ipv6 %}
     replace: lo0 {
         unit 0 {
             family inet6 {
@@ -36,4 +73,6 @@ interfaces {
             }
         }
     }
+{% endif %}
 }
+{# EOF #}

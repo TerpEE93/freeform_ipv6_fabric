@@ -140,7 +140,9 @@
 
 #}
 {% if ae_count or chassis_config %}
-replace: chassis {
+chassis {
+    {# Junos requires explicitly configuring device-count for the number of
+       aggregate-ethernet devices which are rendered by junos_interfaces.jinja #}
     {% if ae_count %}
     aggregated-devices {
         ethernet {
