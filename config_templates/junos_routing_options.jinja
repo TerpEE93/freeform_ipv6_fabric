@@ -3,7 +3,7 @@
 
 routing-options {
 {% if dev_router_id %}
-    router-id {{ dev_router_id[:-3] }};
+    router-id {{ dev_router_id|to_ip }};
 {% endif %}
 {% if local_asn %}
     autonomous-system {{ local_asn }};

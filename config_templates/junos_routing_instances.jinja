@@ -10,7 +10,7 @@ replace: routing-instances {
         }
         vtep-source-interface lo0.0 inet6;
         service-type vlan-aware;
-        route-distinguisher {{ dev_router_id[:-3] }}:65534;
+        route-distinguisher {{ dev_router_id|to_ip }}:65534;
         vrf-target {
             target:100:100;
             auto;

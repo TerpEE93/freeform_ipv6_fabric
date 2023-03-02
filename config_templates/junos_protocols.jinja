@@ -73,7 +73,7 @@ replace: protocols {
                 multiplier 3;
             }
             vpn-apply-export;
-            local-address {{ loopback_ipv6[:-4] }};
+            local-address {{ loopback_ipv6|to_ip }};
             export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if not iface.get('ipv6_address') %}
@@ -83,7 +83,7 @@ replace: protocols {
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
 		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
 		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            neighbor {{ bgp_ns.neighbor_loopback[:-4] }} {
+            neighbor {{ bgp_ns.neighbor_loopback|to_ip }} {
                 peer-as {{ bgp_ns.neighbor_asn }};
             }
     {% endfor %}
@@ -135,7 +135,7 @@ replace: protocols {
                 multiplier 3;
             }
             vpn-apply-export;
-            local-address {{ loopback_ipv6[:-4] }};
+            local-address {{ loopback_ipv6|to_ip }};
             export ( LEAF_TO_SPINE_EVPN_OUT )
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if not iface.get('ipv6_address') %}
@@ -145,7 +145,7 @@ replace: protocols {
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
 		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
 		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            neighbor {{ bgp_ns.neighbor_loopback[:-4] }} {
+            neighbor {{ bgp_ns.neighbor_loopback|to_ip }} {
                 peer-as {{ bgp_ns.neighbor_asn }};
             }
     {% endfor %}
