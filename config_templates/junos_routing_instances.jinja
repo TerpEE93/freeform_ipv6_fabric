@@ -1,4 +1,7 @@
+{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
+{% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
+{% set rd = dev_router_id|to_ip %}
 {% if 'leaf' in system_tags %}
 replace: routing-instances {
     VSWITCH {
@@ -10,12 +13,39 @@ replace: routing-instances {
         }
         vtep-source-interface lo0.0 inet6;
         service-type vlan-aware;
-        route-distinguisher {{ dev_router_id|to_ip }}:65534;
+        route-distinguisher {{ rd }}:65534;
         vrf-target {
             target:100:100;
             auto;
         }
+{% for ri in routing_instances %}
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+    {% if loop.first %}
+        vlans {
+    {% endif %}
+            {{ vlan }} {
+                vlan-id {{ vlan_items.vlan_id }};
+                vxlan {
+                    vni {{ vlan_items.vxlan_vni }};
+                }
+            {% if vlan_items.ip_prefix != "" %}
+                l3-interface irb.blah;
+            {% endif %}
+            }
+    {% if loop.last %}
+        }
+    {% endif %}
+    {% endfor %}
+{% endfor %}
     }
+{% for ri in routing_instances %}
+    {{ri.vrf_name }} {
+        instance-type vrf;
+        route-distinguisher {{ rd }}:{{ ri.tenant_vni }};
+        vrf-target target:{{ local_asn }}:{{ ri.tenant_vni }};
+        vrf-table-label;
+    }
+{% endfor %}
 }
 {% endif %}
 {# EOF #}

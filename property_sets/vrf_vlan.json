@@ -1,0 +1,36 @@
+{
+    "Tenant_A": {
+        "active": "True",
+        "vrf_name": "Tenant_A",
+        "tenant_vni": 100,
+        "vlans": {
+            "vlan_100": {
+                "vlan_id": 100,
+                "vxlan_vni": 100100,
+                "ip_prefix": "172.31.100.1/24"
+            },
+            "vlan_120": {
+                "vlan_id": 120,
+                "vxlan_vni": 100120,
+                "ip_prefix": "172.31.120.1/24"
+            }
+        }
+    },
+    "Tenent_B": {
+        "active": "True",
+        "vrf_name": "Tenant_B",
+        "tenant_vni": 200,
+        "vlans": {
+            "vlan_200": {
+                "vlan_id": 200,
+                "vxlan_vni": 100200,
+                "ip_prefix": "172.31.200.1/24"
+            },
+            "vlan_240": {
+                "vlan_id": 240,
+                "vxlan_vni": 200240,
+                "ip_prefix": "172.31.240.1/24"
+            }
+        }
+    }
+}
