@@ -1,0 +1,5 @@
+{
+    "fabric_intf_mtu": "9192",
+    "host_intf_mtu": "9100",
+    "irb_intf_mtu": "9000"
+}

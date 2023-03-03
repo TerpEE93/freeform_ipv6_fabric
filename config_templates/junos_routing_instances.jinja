@@ -29,7 +29,7 @@ replace: routing-instances {
                     vni {{ vlan_items.vxlan_vni }};
                 }
             {% if vlan_items.ip_prefix != "" %}
-                l3-interface irb.blah;
+                l3-interface irb.{{ vlan_items.vlan_id }};
             {% endif %}
             }
     {% if loop.last %}
@@ -41,9 +41,32 @@ replace: routing-instances {
 {% for ri in routing_instances %}
     {{ri.vrf_name }} {
         instance-type vrf;
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+        {% if vlan_items.ip_prefix != "" %}
+        interface irb.{{ vlan_items.vlan_id }};
+        {% endif %}
+    {% endfor %}
         route-distinguisher {{ rd }}:{{ ri.tenant_vni }};
+    {% if local_asn > 65535 %}
+        vrf-target target:{{ local_asn }}L:{{ ri.tenant_vni }};
+    {% else %}
         vrf-target target:{{ local_asn }}:{{ ri.tenant_vni }};
+    {% endif %}
         vrf-table-label;
+        routing-options {
+            multipath;
+            auto-export;
+        }
+        protocols {
+            evpn {
+                ip-prefix-routes {
+                    advertise direct-nexthop;
+                    encapsulation vxlan;
+                    vni {{ ri.tenant_vni }};
+                    export BGP-AOS-Policy-{{ ri.vrf_name }};
+                }
+            }
+        }
     }
 {% endfor %}
 }

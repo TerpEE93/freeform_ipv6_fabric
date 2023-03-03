@@ -1,4 +1,8 @@
-{# Comment #}
+{#
+    Much of this is boilerplate, but we do need to generate policies
+    per Tenant
+#}
+{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 replace: policy-options {
     policy-statement AllPodNetworks {
         term AllPodNetworks-06 {
@@ -74,6 +78,40 @@ replace: policy-options {
             load-balance per-packet;
         }
     }
+{% for ri in routing_instances %}
+    {% if ri.vrf_name %}
+    policy-statement AllPodNetworks-{{ ri.vrf_name }} {
+        term AllPodNetworks-{{ ri.vrf_name }}-04 {
+            from {
+                family inet;
+                protocol direct;
+            }
+            then accept;
+        }
+        term AllPodNetworks-{{ ri.vrf_name }}-06 {
+            from {
+                family inet6;
+                protocol direct;
+            }
+            then accept;
+        }
+        term AllPodNetworks-{{ ri.vrf_name }}-100 {
+            then reject;
+        }
+    }
+    policy-statement BGP-AOS-Policy-{{ ri.vrf_name }} {
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-10 {
+            from {
+                policy AllPodNetworks-{{ ri.vrf_name }};
+            }
+            then accept;
+        }
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-100 {
+            then reject;
+        }
+    }
+    {% endif %}
+{% endfor %}
     community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
     community FROM_SPINE_EVPN_TIER members 0:14;
     community FROM_SPINE_FABRIC_TIER members 0:15;

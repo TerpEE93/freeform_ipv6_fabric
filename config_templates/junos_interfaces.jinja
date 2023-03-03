@@ -1,6 +1,8 @@
 {% set this_router = hostname %}
+{% set intf_prop = property_sets.get('interface_properties', {} ) %}
 {% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
+{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% for interface_name, intf_resources in interface_resources.iteritems() %}
     {% for resource in intf_resources if resource['label'] == 'lacp' %}
         {% for r in resource['resources'] %}
@@ -18,16 +20,28 @@
         {% endfor %}
     {% endfor %}
 {% endfor %}
+{% set vlan_list = [] %}
+{% for ri_item in routing_instances %}
+    {% for key, value in ri_item.items() %}
+        {% if key == 'vlans' %}
+            {% for k, v in value.items() %}
+                {{ vlan_list.append(k) or "" }}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
 interfaces {
 {% for interface_name, iface in interfaces.iteritems() %}
     replace: {{ interface_name }} {
         description "{{ iface['description'] }}";
+    {# Is this a LAG member? #}
     {% if iface.part_of %}
         ether-options {
             802.3ad {{ iface.part_of }};
         }
         {% continue %}
     {% endif %}
+    {# Is this a LAG bundle (e.g., aeX interface)? #}
     {% if iface.get('composed_of') %}
         {% set esi_id = esi_lags.esi_intfs.get(interface_name) %}
         {% set lacp_system_id = esi_lags.lacp_system_ids.get(interface_name) %}
@@ -47,17 +61,32 @@ interfaces {
         }
         {% endif %}
     {% endif %}
+    {# Is this a fabric link? #}
     {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
+        mtu {{ intf_prop.fabric_intf_mtu }};
         unit 0 {
             family inet6 {
                 address {{ iface['ipv6_address'] }}/{{ iface['ipv6_prefixlen'] }};
             }
         }
+    {# Is this a host-facing interface? #}
     {% elif 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         {% set intf_mode = 'trunk' if 'mode_trunk' in iface.link_tags else 'access' %}
+        {% set intf_vlan_list = [] %}
+        {% for vlan in vlan_list %}
+            {% if vlan in iface.link_tags %}
+                {{ intf_vlan_list.append(vlan) or "" }}
+            {% endif %}
+        {% endfor%}
+        mtu {{ intf_prop.host_intf_mtu }};
         unit 0 {
             family ethernet-switching {
+            {% if intf_vlan_list %}
                 interface-mode {{intf_mode}};
+                vlan {
+                    members [ {% for vlan in intf_vlan_list %}{{ vlan }} {% endfor %}];
+                }
+            {% endif %}
             }
         }
     {% else %}
@@ -65,6 +94,7 @@ interfaces {
     {% endif %}
     }
 {% endfor %}
+{# Now for the loopback interface #}
 {% if loopback_ipv6 %}
     replace: lo0 {
         unit 0 {
@@ -74,5 +104,30 @@ interfaces {
         }
     }
 {% endif %}
+{# And now for the IRB interfaces #}
+{% for ri in routing_instances %}
+    {% if loop.first %}
+    replace: irb {
+        mtu {{ intf_prop.irb_intf_mtu }};
+    {% endif %}
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+        {% if vlan_items.ip_prefix %}
+        unit {{ vlan_items.vlan_id }} {
+            {% if vlan_items.ip_prefix|to_prefixlen <= 32 %}
+            family inet {
+                address {{ vlan_items.ip_prefix }};
+            }
+            {% elif vlan_items.ip_prefix|to_prefixlen > 32 %}
+            family inet6 {
+                address {{ vlan_items.ip_prefix }};
+            }
+            {% endif %}
+        }
+        {% endif %}
+    {% endfor %}
+    {% if loop.last %}
+    }
+    {% endif %}
+{% endfor %}
 }
 {# EOF #}

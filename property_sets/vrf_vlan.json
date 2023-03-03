@@ -2,7 +2,7 @@
     "Tenant_A": {
         "active": "True",
         "vrf_name": "Tenant_A",
-        "tenant_vni": 100,
+        "tenant_vni": 9001,
         "vlans": {
             "vlan_100": {
                 "vlan_id": 100,
@@ -19,17 +19,17 @@
     "Tenent_B": {
         "active": "True",
         "vrf_name": "Tenant_B",
-        "tenant_vni": 200,
+        "tenant_vni": 9002,
         "vlans": {
             "vlan_200": {
                 "vlan_id": 200,
                 "vxlan_vni": 100200,
-                "ip_prefix": "172.31.200.1/24"
+                "ip_prefix": "fc01:face:0200::1/64"
             },
             "vlan_240": {
                 "vlan_id": 240,
                 "vxlan_vni": 200240,
-                "ip_prefix": "172.31.240.1/24"
+                "ip_prefix": "fc01:face:0240::1/64"
             }
         }
     }
