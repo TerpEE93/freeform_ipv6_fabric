@@ -1,5 +1,4 @@
 # HOWTO
-=====
 Here are the basic elements to make the magic happen...
 
 1.  Lay out your systems in the editor.
@@ -45,21 +44,21 @@ Here are the basic elements to make the magic happen...
         Scope: node('system', system_type='internal', name='target')
     - Resource generator named "asn_assignments" under
       Root/fabric_resources/devices
-        Scope:  node('system', system_type='internal', name='target')
-        Allocation Group:  ASN Pool
+        - Scope:  node('system', system_type='internal', name='target')
+        - Allocation Group:  ASN Pool
     - Resource generator named "loopback_assignments" under
       Root/fabric_resources/devices
-        Scope:  node('system', system_type='internal', name='target')
-        Allocation Group:  Loopbacks
+        - Scope:  node('system', system_type='internal', name='target')
+        - Allocation Group:  Loopbacks
     - Resource generator named "router_id" under Root/fabric_resources/devices
-        Scope:  node('system', system_type='internal', name='target')
-        Allocation Group:  RIDv4
+       -  Scope:  node('system', system_type='internal', name='target')
+        - Allocation Group:  RIDv4
     - Resource generator named "Fabric Link Addressing" under
       Root/fabric_resources
-        Scope:  node('link', role='internal', name='target')
-        Allocation Group:  Fabric Links
+        - Scope:  node('link', role='internal', name='target')
+        - Allocation Group:  Fabric Links
     - Resource generator named "lacp_system_ids" under Root/lacp
-        Scope:
+        - Scope:
             match(
                 node('system', name='system', system_type='internal')
                     .out('hosted_interfaces')
@@ -67,7 +66,7 @@ Here are the basic elements to make the magic happen...
                     .in_('composed_of')
                     .node('interface', name='target')
             )
-        Allocation group:  esi_ids
+        - Allocation group:  esi_ids
 
 5.  Now import the Config Templates and Property Sets from this repo.
     You will need to edit the property sets for your specific blueprint.

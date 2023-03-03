@@ -15,5 +15,5 @@ To Do:
   the same manner we do for ASN's and IP addresses.
 - Better data validation and assorted error checking.
 - Clean up some of the strange whitespace in the rendered configs.  Where
-  I append values to a list in a Jinaj template, I get blank lines right now.
+  I append values to a list in a Jinja template, I get blank lines right now.
 - Other stuff I'm not thinking of right now...
