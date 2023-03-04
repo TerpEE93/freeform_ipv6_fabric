@@ -1,3 +1,4 @@
+{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources','devices') %}
 {% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
 {% set bgp_ns = namespace(neighbor_asn=None) %}
@@ -5,12 +6,22 @@
 replace: protocols {
     router-advertisement {
 {% for interface_name, iface in interfaces.iteritems() %}
-{% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
+    {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
         interface {{ interface_name }}.0 {
             max-advertisement-interval 30;
             min-advertisement-interval 10;
         }
-{% endif %}
+    {% endif %}
+{% endfor %}
+{% for ri in routing_instances %}
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+        {% if vlan_items.ip_prefix != "" %}
+        interface irb.{{ vlan_items.vlan_id }} {
+            max-advertisement-interval 30;
+            min-advertisement-interval 10;
+        }
+        {% endif %}
+    {% endfor %}
 {% endfor %}
     }
     lldp {

@@ -13,6 +13,8 @@ pay for, and what you see here is free. Use carefully, and at your own risk.
 ## To Do:
 - Create allocation pools to dynamically generate and assign VNI's in
   the same manner we do for ASN's and IP addresses.
+- Same thing for the loopback units that are associated with each
+  Tenant VRF; we should do this from an allocation pool.
 - Better data validation and assorted error checking.
 - Clean up some of the strange whitespace in the rendered configs.  Where
   I append values to a list in a Jinja template, I get blank lines right now.

@@ -3,6 +3,7 @@
         "active": "True",
         "vrf_name": "Tenant_A",
         "tenant_vni": 9001,
+        "lo0_unit": 1,
         "vlans": {
             "vlan_100": {
                 "vlan_id": 100,
@@ -20,6 +21,7 @@
         "active": "True",
         "vrf_name": "Tenant_B",
         "tenant_vni": 9002,
+        "lo0_unit": 2,
         "vlans": {
             "vlan_200": {
                 "vlan_id": 200,

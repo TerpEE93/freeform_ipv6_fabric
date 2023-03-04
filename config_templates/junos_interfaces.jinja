@@ -3,6 +3,7 @@
 {% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
+{% set ns = namespace(dev_vlan_list = []) %}
 {% for interface_name, intf_resources in interface_resources.iteritems() %}
     {% for resource in intf_resources if resource['label'] == 'lacp' %}
         {% for r in resource['resources'] %}
@@ -39,6 +40,7 @@ interfaces {
         ether-options {
             802.3ad {{ iface.part_of }};
         }
+    }
         {% continue %}
     {% endif %}
     {# Is this a LAG bundle (e.g., aeX interface)? #}
@@ -75,7 +77,7 @@ interfaces {
         {% set intf_vlan_list = [] %}
         {% for vlan in vlan_list %}
             {% if vlan in iface.link_tags %}
-                {{ intf_vlan_list.append(vlan) or "" }}
+                {{ intf_vlan_list.append(vlan) or "" }}{{ ns.dev_vlan_list.append(vlan) or "" }}
             {% endif %}
         {% endfor%}
         mtu {{ intf_prop.host_intf_mtu }};
@@ -102,17 +104,29 @@ interfaces {
                 address {{ loopback_ipv6 }};
             }
         }
+{% if 'leaf' in system_tags %}
+    {% for ri in routing_instances %}
+        {% if ri.lo0_unit %}
+        unit {{ ri.lo0_unit }} {
+            family inet6;
+        }
+        {% endif %}
+    {% endfor %}  
+{% endif %}  
     }
 {% endif %}
 {# And now for the IRB interfaces #}
-{% for ri in routing_instances %}
-    {% if loop.first %}
+{% if 'leaf' in system_tags %}
+    {% for ri in routing_instances %}
+        {% if loop.first %}
     replace: irb {
         mtu {{ intf_prop.irb_intf_mtu }};
-    {% endif %}
+        {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
-        {% if vlan_items.ip_prefix %}
+        {% if vlan in ns.dev_vlan_list %}
+            {% if vlan_items.ip_prefix %}
         unit {{ vlan_items.vlan_id }} {
+            mac 00:1c:73:00:00:01;
             {% if vlan_items.ip_prefix|to_prefixlen <= 32 %}
             family inet {
                 address {{ vlan_items.ip_prefix }};
@@ -123,11 +137,13 @@ interfaces {
             }
             {% endif %}
         }
+            {% endif %}
         {% endif %}
     {% endfor %}
     {% if loop.last %}
     }
     {% endif %}
-{% endfor %}
+    {% endfor %}
+{% endif %}
 }
 {# EOF #}
