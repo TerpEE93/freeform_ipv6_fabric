@@ -10,10 +10,14 @@ and Resource Management are setup correctly.
 There is no warranty, expressed or implied, with this repo. You get what you
 pay for, and what you see here is free. Use carefully, and at your own risk.
 
-To Do:
+## To Do:
 - Create allocation pools to dynamically generate and assign VNI's in
   the same manner we do for ASN's and IP addresses.
 - Better data validation and assorted error checking.
 - Clean up some of the strange whitespace in the rendered configs.  Where
   I append values to a list in a Jinja template, I get blank lines right now.
 - Other stuff I'm not thinking of right now...
+
+## Credits:
+Many thanks to Bill Wester and JP Senior from the Apstra team.  Through both,
+I got lots of good coaching and good source material to poach from!
