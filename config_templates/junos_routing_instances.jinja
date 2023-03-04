@@ -1,28 +1,55 @@
+{% if 'leaf' in system_tags %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
 {% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
 {% set rd = dev_router_id|to_ip %}
-{% if 'leaf' in system_tags %}
-replace: routing-instances {
-    VSWITCH {
+{% set ns = namespace(dev_vlan_list = []) %}
+{% set vlan_list = [] %}
+{% for ri_item in routing_instances %}
+    {% for key, value in ri_item.items() %}
+        {% if key == 'vlans' %}
+            {% for k, v in value.items() %}
+                {{ vlan_list.append(k) or "" }}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+        {% for vlan in vlan_list %}
+            {% if vlan in iface.link_tags %}
+                {{ ns.dev_vlan_list.append(vlan) or "" }}
+            {% endif %}
+        {% endfor%}
+    {% endif %}
+{% endfor %}
+routing-instances {
+    replace: VSWITCH {
         instance-type mac-vrf;
         protocols {
             evpn {
                 encapsulation vxlan;
+                default-gateway do-not-advertise;
+                extended-vni-list all;
             }
         }
         vtep-source-interface lo0.0 inet6;
         service-type vlan-aware;
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+        interface {{ interface_name }}.0;
+        {% endif %}
+    {% endfor %}
         route-distinguisher {{ rd }}:65534;
         vrf-target {
             target:100:100;
             auto;
         }
+{% if ns.dev_vlan_list %}
+        vlans {
 {% for ri in routing_instances %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
-    {% if loop.first %}
-        vlans {
-    {% endif %}
+        {% if vlan in ns.dev_vlan_list %}
             {{ vlan }} {
                 vlan-id {{ vlan_items.vlan_id }};
                 vxlan {
@@ -32,17 +59,20 @@ replace: routing-instances {
                 l3-interface irb.{{ vlan_items.vlan_id }};
             {% endif %}
             }
-    {% if loop.last %}
-        }
-    {% endif %}
+        {% endif %}
     {% endfor %}
 {% endfor %}
+        }
+{% endif %}
     }
 {% for ri in routing_instances %}
-    {{ri.vrf_name }} {
+    replace: {{ri.vrf_name }} {
         instance-type vrf;
+    {% if ri.lo0_unit %}
+        interface lo0.{{ ri.lo0_unit }};
+    {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
-        {% if vlan_items.ip_prefix != "" %}
+        {% if vlan in ns.dev_vlan_list and vlan_items.ip_prefix != "" %}
         interface irb.{{ vlan_items.vlan_id }};
         {% endif %}
     {% endfor %}
