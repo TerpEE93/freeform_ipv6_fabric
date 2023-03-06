@@ -1,6 +1,18 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.1.2
+Bug fixes only:
+- The template for the BGP-AOS-Policy was missing term 20, which matched
+  on protocol BGP and accepted the routes.  This was preventing spine
+  devices from forwarding BGP-learned routes between leafs.
+- Cleaned up the resrouce generators to use lacp_system_ids for both the
+  ESI and LACP system ID values on a LAG bundle.  The old ESI generator
+  was still being used in the interface template to generate the ESI value
+  on the LAG, and the check was failing (since the resource generator no
+  longer existed).  ESI values are now properly generated from the
+  lacp_system_ids resource generator.
+
 ## Version 0.1.1
 Bug fixes only:
 - Fixed closing braces on LAG member interfaces (one closing brace was missing).

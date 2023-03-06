@@ -24,6 +24,12 @@ replace: policy-options {
             from policy AllPodNetworks;
             then accept;
         }
+        term BGP-AOS-Policy-20 {
+            from {
+                protocol bgp;
+            }
+            then accept;
+        }
         term BGP-AOS-Policy-100 {
             then reject;
         }

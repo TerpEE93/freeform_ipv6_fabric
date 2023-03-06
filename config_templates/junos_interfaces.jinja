@@ -7,7 +7,7 @@
 {% for interface_name, intf_resources in interface_resources.iteritems() %}
     {% for resource in intf_resources if resource['label'] == 'lacp' %}
         {% for r in resource['resources'] %}
-            {% if r.get('value') and r.get('label') == 'esi_ids' %}
+            {% if r.get('value') and r.get('label') == 'lacp_system_ids' %}
                 {% set esi_prefix = '00:01:00:00:' %}
                 {% set mac_address = '{:012X}'.format(r['value']|int) %}
                 {% set esi_address = esi_prefix + mac_address|to_mac_format('hyphen')|replace('-', ':') %}
