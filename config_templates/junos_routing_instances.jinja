@@ -28,6 +28,19 @@ routing-instances {
         instance-type mac-vrf;
         protocols {
             evpn {
+{% if ns.dev_vlan_list %}
+                vni-options {
+    {% for ri in routing_instances %}
+        {% for vlan, vlan_items in ri.vlans.iteritems() %}
+            {% if vlan in ns.dev_vlan_list %}
+                    vni {{ vlan_items.vxlan_vni }} {
+                        vrf-target target:{{ vlan_items.vxlan_vni }}L:1;
+                    }
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+                }
+{% endif %}
                 encapsulation vxlan;
                 default-gateway do-not-advertise;
                 extended-vni-list all;
@@ -43,7 +56,6 @@ routing-instances {
         route-distinguisher {{ rd }}:65534;
         vrf-target {
             target:100:100;
-            auto;
         }
 {% if ns.dev_vlan_list %}
         vlans {
