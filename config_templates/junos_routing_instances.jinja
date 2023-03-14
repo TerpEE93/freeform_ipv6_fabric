@@ -24,11 +24,11 @@
     {% endif %}
 {% endfor %}
 routing-instances {
+{% if ns.dev_vlan_list %}
     replace: VSWITCH {
         instance-type mac-vrf;
         protocols {
             evpn {
-{% if ns.dev_vlan_list %}
                 vni-options {
     {% for ri in routing_instances %}
         {% for vlan, vlan_items in ri.vlans.iteritems() %}
@@ -40,7 +40,6 @@ routing-instances {
         {% endfor %}
     {% endfor %}
                 }
-{% endif %}
                 encapsulation vxlan;
                 default-gateway do-not-advertise;
                 extended-vni-list all;
@@ -57,7 +56,6 @@ routing-instances {
         vrf-target {
             target:100:100;
         }
-{% if ns.dev_vlan_list %}
         vlans {
 {% for ri in routing_instances %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
@@ -75,8 +73,8 @@ routing-instances {
     {% endfor %}
 {% endfor %}
         }
-{% endif %}
     }
+{% endif %}
 {% for ri in routing_instances %}
     replace: {{ri.vrf_name }} {
         instance-type vrf;
