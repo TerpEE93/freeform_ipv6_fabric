@@ -33,7 +33,7 @@ Here are the basic elements to make the magic happen...
         Used to generate IPv6 addresses for the fabric interfaces.
     - "RIDv4" of Type IPv4
         Used to generate 32-bit router ID's for each internal system.
-    - "esi_ids" of Type Integer
+    - "LACP System IDs" of Type Integer
         Use low values for integers (e.g., 1-4094).  We'll use these values
         to generate ESI and LACP System ID values.
 
