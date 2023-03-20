@@ -1,6 +1,21 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.2.0
+New features:
+- Added a python script in the `support` folder that will convert a properly-
+  formatted Excel spreadsheet of Tenant/VLAN entries into JSON that can be
+  pasted into the `vrf_vlan` Property Set in the blueprint.  There is an
+  example spreadsheet included in the folder as well.
+
+Changed behavior:
+- What was previously called `ip_prefix` in the Configuration Templates and
+  Property Sets has been renamed `irb_prefix` for clarity, as the only place
+  we used `ip_prefix` was to associate IP addresses with the IRB interfaces.
+
+Big fixes:
+- TBD
+
 ## Version 0.1.3
 Bug fixes only:
 - Removed `vrf-target auto` from the configuration of the VSWITCH instance

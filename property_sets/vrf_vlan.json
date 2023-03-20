@@ -8,12 +8,12 @@
             "vlan_100": {
                 "vlan_id": 100,
                 "vxlan_vni": 100100,
-                "ip_prefix": "172.31.100.1/24"
+                "irb_prefix": "172.31.100.1/24"
             },
             "vlan_120": {
                 "vlan_id": 120,
                 "vxlan_vni": 100120,
-                "ip_prefix": "172.31.120.1/24"
+                "irb_prefix": "172.31.120.1/24"
             }
         }
     },
@@ -26,12 +26,12 @@
             "vlan_200": {
                 "vlan_id": 200,
                 "vxlan_vni": 100200,
-                "ip_prefix": "fc01:face:0200::1/64"
+                "irb_prefix": "fc01:face:0200::1/64"
             },
             "vlan_240": {
                 "vlan_id": 240,
                 "vxlan_vni": 200240,
-                "ip_prefix": "fc01:face:0240::1/64"
+                "irb_prefix": "fc01:face:0240::1/64"
             }
         }
     }

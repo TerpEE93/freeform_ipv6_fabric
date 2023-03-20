@@ -124,16 +124,16 @@ interfaces {
         {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
         {% if vlan in ns.dev_vlan_list %}
-            {% if vlan_items.ip_prefix %}
+            {% if vlan_items.irb_prefix %}
         unit {{ vlan_items.vlan_id }} {
             mac 00:1c:73:00:00:01;
-            {% if vlan_items.ip_prefix|to_prefixlen <= 32 %}
+            {% if vlan_items.irb_prefix|to_prefixlen <= 32 %}
             family inet {
-                address {{ vlan_items.ip_prefix }};
+                address {{ vlan_items.irb_prefix }};
             }
-            {% elif vlan_items.ip_prefix|to_prefixlen > 32 %}
+            {% elif vlan_items.irb_prefix|to_prefixlen > 32 %}
             family inet6 {
-                address {{ vlan_items.ip_prefix }};
+                address {{ vlan_items.irb_prefix }};
             }
             {% endif %}
         }
