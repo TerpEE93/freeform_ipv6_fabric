@@ -65,7 +65,7 @@ routing-instances {
                 vxlan {
                     vni {{ vlan_items.vxlan_vni }};
                 }
-            {% if vlan_items.irb_prefix != "" %}
+            {% if vlan_items.irb_prefix4 != "" or vlan_items.irb_prefix6 != ""%}
                 l3-interface irb.{{ vlan_items.vlan_id }};
             {% endif %}
             }
@@ -82,8 +82,10 @@ routing-instances {
         interface lo0.{{ ri.lo0_unit }};
     {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
-        {% if vlan in ns.dev_vlan_list and vlan_items.irb_prefix != "" %}
+        {% if vlan in ns.dev_vlan_list %}
+            {% if vlan_items.irb_prefix4 != "" or vlan_items.irb_prefix6 != "" %}
         interface irb.{{ vlan_items.vlan_id }};
+            {% endif %}
         {% endif %}
     {% endfor %}
         route-distinguisher {{ rd }}:{{ ri.tenant_vni }};

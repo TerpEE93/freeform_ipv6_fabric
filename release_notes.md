@@ -1,6 +1,36 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.2.1
+### Changed behavior:
+- Previous releases of this tool-set supported VXLANs that were one of pure-L2,
+  IPv4 only, or IPv6 only.  Missing was support for a dual-stack VXLAN.  That
+  is corrected in this release.
+
+- To support the change above (dual-stack VXLANs), the `vrf_vlan` property set
+  has been changed.  What was previously called `irb_prefix`, with prefix-mask
+  guesses as to whether it was an IPv4 prefix (mask < 32) or an IPv6 prefix
+  (mask >= 32) has been removed.  From this release forward, we introduce
+  `irb_prefix4` for IPv4 VXLAN prefixes and `irb_prefix6` for IPv6 VXLAN
+  prefixes.  Updates have been made to the necessary configuration templates,
+  the Python tool `parse_vrf_vlan.json`, and the example spreadsheet.
+
+- The vrf_vlan_example spreadsheet included in the support/ directory is now
+  formatted as an .xlsx workbook rather than the older .xls format.  Copy the
+  example file to `vrf_vlan.xlsx` and make your edits there.  There is a sheet
+  of instructions included in the workbook. 
+
+- The Apstra 4.1.2 reference design sets every L2 port as an edge port under
+  `[edit protocols rstp]`.  Updated the `junos_protocols.jinja` to do the
+  same thing here.
+
+### Bug fixes:
+- The `junos_protocols.jinja` template was creating entries for IPv4-only
+  IRB interfaces under the `[edit protocols router-advertisement]` container.
+  This was not correct.  The template has been updated so that only IRB
+  interfaces with an IPv6 address assigned are included in this configuration
+  container.  (This change includes IPv6-only and dual-stack IRB interfaces.)
+
 ## Version 0.2.0
 New features:
 - Added a python script in the `support` folder that will convert a properly-

@@ -37,7 +37,7 @@ replace: protocols {
     {% for ri in routing_instances %}
         {% for vlan, vlan_items in ri.vlans.iteritems() %}
             {% if vlan in ns.dev_vlan_list %}
-                {% if vlan_items.irb_prefix %}
+                {% if vlan_items.irb_prefix6 %}
         interface irb.{{ vlan_items.vlan_id }} {
             max-advertisement-interval 30;
             min-advertisement-interval 10;
@@ -57,6 +57,13 @@ replace: protocols {
     rstp {
         bridge-priority 0;
         bpdu-block-on-edge;
+{% for interface_name, iface in interfaces.iteritems() %}
+    {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+        interface {{ interface_name }} {
+            edge;
+        }
+    {% endif %}
+{% endfor %}
     }
     bgp {
         log-updown;
