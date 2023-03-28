@@ -1,6 +1,21 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.3.0
+### New features:
+- Support for a richer `[edit system]` container.  Current support for:
+    * The domain-name command
+    * List of DNS servers
+    * List of NTP servers
+    * Support for RADIUS authentication and setting the authentication-order
+    * Syslog to both file and host targets
+- Note that you can set the management VRF name in the custom_sys_properties
+  file, but it should be left as `mgmt_junos` if you want management functions
+  to work properly...
+
+### Bug fixes:
+None in this release, thought we've likely introduced a few new ones :)
+
 ## Version 0.2.1
 ### Changed behavior:
 - Previous releases of this tool-set supported VXLANs that were one of pure-L2,

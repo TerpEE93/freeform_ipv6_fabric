@@ -1,5 +1,69 @@
-{% if hostname %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
+
 system {
+    {% if hostname %}
     host-name {{hostname}};
+    {% endif %}
+    {% if 'domain_name' in sys_prop %}
+    domain-name {{ sys_prop.domain_name }};
+    {% endif %}
+    {% if 'auth_order' in sys_prop %}
+    replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor%}];
+    {% endif %}
+    {% if 'dns' in sys_prop %}
+    replace: name-server {
+        {% for server in sys_prop.dns.servers %}
+        {{ server }} routing-instance {{ mgt_vrf }};
+        {% endfor %}
+    }
+    {% endif %}
+    {% if 'radius' in sys_prop %}
+    replace: radius-server {
+        {% for dict_item in sys_prop.radius.servers %}
+        {{ dict_item['host_ip'] }} {
+            routing-instance {{ mgt_vrf }};
+            port {{ dict_item['port'] }};
+            secret {{ dict_item['secret'] }};
+        }
+        {% endfor %}
+    }
+    {% endif %}
+    {% if 'ntp' in sys_prop %}
+    replace: ntp {
+        {% for server in sys_prop.ntp.servers %}
+        server {{ server }};
+        {% endfor %}
+        source-address {{ management_ip }} routing-instance {{ mgt_vrf }};
+    }
+    {% endif %}
+    {% if 'syslog_common' in sys_prop %}
+    replace: syslog {
+        {% if 'archive' in sys_prop.syslog_common %}
+        archive {%- for k, v in sys_prop.syslog_common.archive.items() %} {{ k }} {{ v}} {%- endfor %};
+        {%- endif %} 
+        {% if 'time_format' in sys_prop.syslog_common %}
+        time-format {%- for v in sys_prop.syslog_common.time_format %} {{ v}} {%- endfor %};
+        {%- endif %} 
+    {% if 'syslog_hosts' in sys_prop %}
+        {% for k, v in sys_prop.syslog_hosts.items()%}
+        host {{ k }} {
+            {% for dict_item in v %}
+            {{ dict_item['facility'] }} {{ dict_item['priority'] }};
+            {% endfor %}
+        }
+        {% endfor %}
+    {% endif %}
+    {% if 'syslog_files' in sys_prop %}
+        {% for k, v in sys_prop.syslog_files.items()%}
+        file {{ k }} {
+            {% for dict_item in v %}
+            {{ dict_item['facility'] }} {{ dict_item['priority'] }};
+            {% endfor %}
+        }
+        {% endfor %}
+    {% endif %}
+    }
+    {% endif %}
+
 }
-{% endif %}
