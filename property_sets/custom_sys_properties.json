@@ -1,0 +1,55 @@
+{
+    "domain_name": "jnpr.net",
+    "auth_order": [ "password", "radius" ],
+    "mgt_vrf": "mgmt_junos",
+    "ntp": {
+        "servers": [
+            "1.1.1.1",
+            "2.2.2.2",
+            "3.3.3.3"
+        ]
+    },
+    "dns": {
+        "servers": [
+            "8.8.8.8",
+            "9.9.9.9"
+        ]
+    },
+    "radius": {
+        "servers": [
+            { "host_ip": "6.6.6.6", "secret": "myKey-01", "port": 1812 },
+            { "host_ip": "7.7.7.7", "secret": "myKey-02", "port": 1812 }
+        ]
+    },
+    "syslog_common": {
+        "archive": { "files": 10, "size": "1m" },
+        "time_format": [ "millisecond", "year" ]
+    },
+    "syslog_hosts": {
+        "192.168.1.1": [
+            { "facility": "any", "priority": "info" },
+            { "facility": "authorization", "priority": "none" },
+            { "facility": "interactive-commands", "priority": "none" }
+        ],
+        "192.168.1.2": [
+            { "facility": "any", "priority": "none" },
+            { "facility": "authorization", "priority": "info" },
+            { "facility": "interactive-commands", "priority": "info" }
+        ]
+    },
+    "syslog_files": {
+        "messages": [
+            { "facility": "any", "priority": "info" },
+            { "facility": "authorization", "priority": "none" },
+            { "facility": "interactive-commands", "priority": "none" }
+        ],
+        "auth_log": [
+            { "facility": "any", "priority": "none" },
+            { "facility": "authorization", "priority": "info" }
+        ],
+        "interactive-commands": [
+            { "facility": "any", "priority": "none" },
+            { "facility": "interactive-commands", "priority": "info" }
+        ]
+    }
+}

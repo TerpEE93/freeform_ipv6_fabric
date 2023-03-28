@@ -70,6 +70,7 @@ Here are the basic elements to make the magic happen...
 
 5.  Now import the Config Templates and Property Sets from this repo.
     You will need to edit the property sets for your specific blueprint.
+    - common_sys_properties: Basic settings under the `[edit system]` container.
     - interface_properties: Set MTU for fabric interfaces, host interfaces,
         and IRB interfaces.
     - vrf_vlan: Define the routing zones (VRF) and VLAN's assigned to each.
