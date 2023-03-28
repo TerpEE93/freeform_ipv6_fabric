@@ -8,7 +8,7 @@ Just trying to keep track of changes as they're made.
     * List of DNS servers
     * List of NTP servers
     * Support for RADIUS authentication and setting the authentication-order
-    * Syslog to both file and host targets 
+    * Syslog to both file and host targets<br>
 Note that you can set the management VRF name in the custom_sys_properties
 file, but it should be left as `mgmt_junos` if you want management functions
 to work properly...
