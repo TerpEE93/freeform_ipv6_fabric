@@ -1,0 +1,112 @@
+{
+    "Tenant_A": {
+        "vrf_name": "Tenant_A",
+        "tenant_vni": 9001,
+        "lo0_unit": 1,
+        "vlans": {
+            "vlan_100": {
+                "vlan_id": 100,
+                "vxlan_vni": 10100,
+                "ipv4_prefix_len": 24,
+                "irb_gateway4": "172.31.100.1",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": "",
+                "irb_gateway6": "",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_120": {
+                "vlan_id": 120,
+                "vxlan_vni": 10120,
+                "ipv4_prefix_len": 24,
+                "irb_gateway4": "172.31.120.1",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": "",
+                "irb_gateway6": "",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_130": {
+                "vlan_id": 130,
+                "vxlan_vni": 10130,
+                "ipv4_prefix_len": "",
+                "irb_gateway4": "",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": "",
+                "irb_gateway6": "",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_1999": {
+                "vlan_id": 1999,
+                "vxlan_vni": 11999,
+                "ipv4_prefix_len": 29,
+                "irb_gateway4": "172.31.99.1",
+                "irb_gateway4_a": "172.31.99.2",
+                "irb_gateway4_b": "172.31.99.3",
+                "ipv6_prefix_len": "",
+                "irb_gateway6": "",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            }
+        }
+    },
+    "Tenant_B": {
+        "vrf_name": "Tenant_B",
+        "tenant_vni": 9002,
+        "lo0_unit": 2,
+        "vlans": {
+            "vlan_200": {
+                "vlan_id": 200,
+                "vxlan_vni": 20200,
+                "ipv4_prefix_len": "",
+                "irb_gateway4": "",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": 64,
+                "irb_gateway6": "fc01:face:0200::1",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_240": {
+                "vlan_id": 240,
+                "vxlan_vni": 20240,
+                "ipv4_prefix_len": "",
+                "irb_gateway4": "",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": 64,
+                "irb_gateway6": "fc01:face:0240::1",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_280": {
+                "vlan_id": 280,
+                "vxlan_vni": 20280,
+                "ipv4_prefix_len": 24,
+                "irb_gateway4": "172.31.28.1",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": 64,
+                "irb_gateway6": "fc01:face:0280::1",
+                "irb_gateway6_a": "",
+                "irb_gateway6_b": ""
+            },
+            "vlan_2999": {
+                "vlan_id": 2999,
+                "vxlan_vni": 22999,
+                "ipv4_prefix_len": "",
+                "irb_gateway4": "",
+                "irb_gateway4_a": "",
+                "irb_gateway4_b": "",
+                "ipv6_prefix_len": 64,
+                "irb_gateway6": "fc01:face:2999::1",
+                "irb_gateway6_a": "fc01:face:2999::2",
+                "irb_gateway6_b": "fc01:face:2999::3"
+            }
+        }
+    }
+}

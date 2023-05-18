@@ -1,6 +1,35 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.4.0
+### New features:
+- Ading support for peering to external gateways.  This has forced more changes
+  to how the `vrf_vlan` property set is setup, as well as the example
+  spreadsheet and the `parse_vrf_vlan.py` conversion tool.  See the
+  **Changed behavior** section for details.  Support for peering allows for
+  peering from the unique address of the IRB on a border leaf to a peer IP
+  address.  This capability currently supports:
+    * External BGP
+    * OSPFv2
+    * OSPFv3
+  __This does not work yet.  The templating work to build the IRB interfaces
+  in the external-facing VLAN is complete - we're using VGA vs. anycast
+  addresses in this case - but the routing work is still to be done.
+
+### Changed behavior:
+- The `vrf_vlan` property set used to provide IPv4 and IPv6 prefix assignements
+  (e.g., 172.31.99.1/24) for the default gateway associated with a VLAN.
+  While this was fine for anycast gateways, things are a bit more complicated
+  when we need both a virtual gateway address and unique addresses per system.
+  So the original `irb_prefix4` has been replaced with `ipv4_prefix_len`
+  (the length of the subnet mask), `irb_gateway4` (the virtual gateway address),
+  and `irb_gateway4_a` and `irb_gateway4_b` (which are the unique IP addresses
+  assigned to the gateways, up to 2).  Similar changes have been made to
+  replace the `irb_prefix6` assignment.
+
+### Bug fixes:
+- That
+
 ## Version 0.3.0
 ### New features:
 - Support for a richer `[edit system]` container.  Current support for:
@@ -9,9 +38,10 @@ Just trying to keep track of changes as they're made.
     * List of NTP servers
     * Support for RADIUS authentication and setting the authentication-order
     * Syslog to both file and host targets
-- Note that you can set the management VRF name in the custom_sys_properties
-  file, but it should be left as `mgmt_junos` if you want management functions
-  to work properly...
+
+Note that you can set the management VRF name in the custom_sys_properties
+file, but it should be left as `mgmt_junos` if you want management functions
+to work properly...
 
 ### Bug fixes:
 None in this release, thought we've likely introduced a few new ones :)
@@ -28,7 +58,7 @@ None in this release, thought we've likely introduced a few new ones :)
   (mask >= 32) has been removed.  From this release forward, we introduce
   `irb_prefix4` for IPv4 VXLAN prefixes and `irb_prefix6` for IPv6 VXLAN
   prefixes.  Updates have been made to the necessary configuration templates,
-  the Python tool `parse_vrf_vlan.json`, and the example spreadsheet.
+  the Python tool `parse_vrf_vlan.py`, and the example spreadsheet.
 
 - The vrf_vlan_example spreadsheet included in the support/ directory is now
   formatted as an .xlsx workbook rather than the older .xls format.  Copy the
