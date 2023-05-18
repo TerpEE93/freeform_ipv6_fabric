@@ -124,19 +124,43 @@ interfaces {
         {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
         {% if vlan in ns.dev_vlan_list %}
-            {% if vlan_items.irb_prefix4 or vlan_items.irb_prefix6 %}
+            {% if vlan_items.irb_gateway4 or vlan_items.irb_gateway6 %}
         unit {{ vlan_items.vlan_id }} {
+        {# If the below test is true, we're using anycast addresses #}
+        {% if not ( vlan_items.irb_gateway4_a or
+                    vlan_items.irb_gateway4_b or
+                    vlan_items.irb_gateway6_a or
+                    vlan_items.irb_gateway6_b ) %}
             mac 00:1c:73:00:00:01;
-            {% if vlan_items.irb_prefix4 %}
+            {% if vlan_items.irb_gateway4 %}
             family inet {
-                address {{ vlan_items.irb_prefix4 }};
+                address {{ vlan_items.irb_gateway4 }}/{{ vlan_items.ipv4_prefix_len }};
             }
             {% endif %}
-            {% if vlan_items.irb_prefix6 %}
+            {% if vlan_items.irb_gateway6 %}
             family inet6 {
-                address {{ vlan_items.irb_prefix6 }};
+                address {{ vlan_items.irb_gateway6 }}/{{ vlan_items.ipv6_prefix_len }};
             }
             {% endif %}
+        {# Otherwise we're using VGA #}
+        {% else %}
+            {% if vlan_items.irb_gateway4 %}
+            family inet {
+                {% set  gateway4 = vlan_items.irb_gateway4_a if 'gateway_A' in system_tags else vlan_items.irb_gateway4_b %}
+                address {{ gateway4}}/{{vlan_items.ipv4_prefix_len}} {
+                    virtual-gateway-address {{ vlan_items.irb_gateway4 }}
+                }
+            }
+            {% endif %}
+            {% if vlan_items.irb_gateway6 %}
+            family inet6 {
+                {% set  gateway6 = vlan_items.irb_gateway6_a if 'gateway_A' in system_tags else vlan_items.irb_gateway6_b %}
+                address {{ gateway6}}/{{vlan_items.ipv6_prefix_len}} {
+                    virtual-gateway-address {{ vlan_items.irb_gateway6 }}
+                }
+            }
+            {% endif %}
+        {% endif %}
         }
             {% endif %}
         {% endif %}

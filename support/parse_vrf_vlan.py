@@ -20,8 +20,14 @@ import json as j
 
 vrf_vlan_dict = {}
 vlans = {}
-irb_prefix4 = ''
-irb_prefix6 = ''
+ipv4_prefix_len = ''
+irb_gw4 = ''
+irb_gw4_a = ''
+irb_gw4_b = ''
+ipv6_prefix_len = ''
+irb_gw6 = ''
+irb_gw6_a = ''
+irb_gw6_b = ''
 in_file = 'vrf_vlan.xlsx'
 in_sheet = 'vrf_vlan_table'
 out_file = 'vrf_vlan.json'
@@ -41,19 +47,59 @@ for row in list(range(len( df.index ))):
     elif pd.notna(s[ 'VLAN' ]):
         vlan_id = int( s[ 'vlan_id' ] )
         vxlan_vni = int( index * 10000 + vlan_id )
-        if pd.notna( s[ 'irb_prefix4' ] ):
-            irb_prefix4 = s[ 'irb_prefix4' ]
+
+        if pd.notna( s[ 'ipv4_prefix_len' ] ):
+            ipv4_prefix_len = int( s[ 'ipv4_prefix_len' ] )
         else:
-            irb_prefix4 = ''
-        if pd.notna( s[ 'irb_prefix6' ] ):
-            irb_prefix6 = s[ 'irb_prefix6' ]
+            ipv4_prefix_len = ''
+
+        if pd.notna( s[ 'irb_gateway4' ] ):
+            irb_gw4 = s[ 'irb_gateway4' ]
         else:
-            irb_prefix6 = ''
+            irb_gw4 = ''
+
+        if pd.notna( s[ 'irb_gateway4_a' ] ):
+            irb_gw4_a = s[ 'irb_gateway4_a' ]
+        else:
+            irb_gw4_a = ''
+
+        if pd.notna( s[ 'irb_gateway4_b' ] ):
+            irb_gw4_b = s[ 'irb_gateway4_b' ]
+        else:
+            irb_gw4_b = ''
+
+        if pd.notna( s[ 'ipv6_prefix_len' ] ):
+            ipv6_prefix_len = int( s[ 'ipv6_prefix_len' ] )
+        else:
+            ipv6_prefix_len = ''
+
+        if pd.notna( s[ 'irb_gateway6' ] ):
+            irb_gw6 = s[ 'irb_gateway6' ]
+        else:
+            irb_gw6 = ''
+
+        if pd.notna( s[ 'irb_gateway6_a' ] ):
+            irb_gw6_a = s[ 'irb_gateway6_a' ]
+        else:
+            irb_gw6_a = ''
+
+        if pd.notna( s[ 'irb_gateway6_b' ] ):
+            irb_gw6_b = s[ 'irb_gateway6_b' ]
+        else:
+            irb_gw6_b = ''
+
         vlans = { **vlans,
                       **{ s[ 'VLAN' ]:{ 'vlan_id':vlan_id,
                                         'vxlan_vni':vxlan_vni,
-                                        'irb_prefix4':irb_prefix4,
-                                        'irb_prefix6':irb_prefix6 } } }
+                                        'ipv4_prefix_len':ipv4_prefix_len,
+                                        'irb_gateway4':irb_gw4,
+                                        'irb_gateway4_a':irb_gw4_a,
+                                        'irb_gateway4_b':irb_gw4_b,
+                                        'ipv6_prefix_len':ipv6_prefix_len,
+                                        'irb_gateway6':irb_gw6,
+                                        'irb_gateway6_a':irb_gw6_a,
+                                        'irb_gateway6_b':irb_gw6_b } } }
+
         vrf_vlan_dict.update( { tenant:{ 'vrf_name':tenant,
                                          'tenant_vni':tenant_vni,
                                          'lo0_unit':index,
