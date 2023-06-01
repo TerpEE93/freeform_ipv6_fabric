@@ -37,7 +37,7 @@ replace: protocols {
     {% for ri in routing_instances %}
         {% for vlan, vlan_items in ri.vlans.iteritems() %}
             {% if vlan in ns.dev_vlan_list %}
-                {% if vlan_items.irb_prefix6 %}
+                {% if vlan_items.irb_gateway6 %}
         interface irb.{{ vlan_items.vlan_id }} {
             max-advertisement-interval 30;
             min-advertisement-interval 10;
