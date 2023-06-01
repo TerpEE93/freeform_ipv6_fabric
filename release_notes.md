@@ -1,7 +1,13 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
-## Version 0.4.0
+## Version 0.4.1
+### Changed behavior:
+- Just a change to .gitignore so that we no longer include the vrf_vlan.json
+  and vrf_vlan.xlsx files from the support/ directory.  These are actual
+  working files, and they change whenever I run a test.  Now we just include
+  the example spreadsheet to avoid confusion.
+
 ### New features:
 - Ading support for peering to external gateways.  This has forced more changes
   to how the `vrf_vlan` property set is setup, as well as the example
@@ -28,7 +34,7 @@ Just trying to keep track of changes as they're made.
   replace the `irb_prefix6` assignment.
 
 ### Bug fixes:
-- That
+- None
 
 ## Version 0.3.0
 ### New features:
