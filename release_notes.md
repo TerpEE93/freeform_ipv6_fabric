@@ -8,8 +8,9 @@ Just trying to keep track of changes as they're made.
   working files, and they change whenever I run a test.  Now we just include
   the example spreadsheet to avoid confusion.
 
+## Version 0.4.0
 ### New features:
-- Ading support for peering to external gateways.  This has forced more changes
+- Adding support for peering to external gateways.  This has forced more changes
   to how the `vrf_vlan` property set is setup, as well as the example
   spreadsheet and the `parse_vrf_vlan.py` conversion tool.  See the
   **Changed behavior** section for details.  Support for peering allows for
