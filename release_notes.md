@@ -1,6 +1,26 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.5.0
+### New features:
+- Added support for peering to an external gateway from within a routing zone
+  (VRF).  Current support is for BGP, OSPFv2 (for IPv4 networks), OSPFv3
+  (for IPv6 networks), and static routes.
+
+### Changed behavior:
+- Updated the junos_policy_options.jinja file to better match how the reference
+  design policies handle advertising IPv4 and IPv6 networks.  The policies
+  for the routing instances now enable Type 5 advertisements by default, and
+  can handle redistribution from OSPF and static routes.
+
+- To implement the change above, added several new columns to the spreadsheet
+  vrf_vlan_example.xlsx.  There's a Yes/No to determine if if VLAN is a border
+  VLAN (e.g., has a protocol peering to an external gateway), and then several
+  checks for BGP/OSPF/Static route peering.  For BGP and Static, the user
+  should include a peer from the appropriate address family.  For OSPF, the
+  user should include the OSPF Area ID.  There are rudimentary checks for peers
+  and OSPF are in the parse_vrf_vlan.py script.
+
 ## Version 0.4.1
 ### Changed behavior:
 - Just a change to .gitignore so that we no longer include the vrf_vlan.json

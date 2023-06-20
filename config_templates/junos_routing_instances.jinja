@@ -108,6 +108,33 @@ routing-instances {
                     export BGP-AOS-Policy-{{ ri.vrf_name }};
                 }
             }
+        {% for vlan, vlan_items in ri.vlans.iteritems() %}
+            {% if vlan_items.is_ospf and vlan_items.irb_gateway4 !="" and
+               vlan_items.ospf_area %}
+            ospf {
+                area {{ vlan_items.ospf_area }} {
+                    interface lo0.{{ ri.lo0_unit }} {
+                        passive;
+                    }
+                    interface irb.{{ vlan_items.vlan_id }};
+                }
+            }
+            {% endif %}
+        {% endfor %}
+        {% for vlan, vlan_items in ri.vlans.iteritems() %}
+            {% if vlan_items.is_ospf and vlan_items.irb_gateway6 !="" and
+               vlan_items.ospf_area %}
+            ospf3 {
+                area {{ vlan_items.ospf_area }} {
+                    interface lo0.{{ ri.lo0_unit }} {
+                        passive;
+                    }
+                    interface irb.{{ vlan_items.vlan_id }};
+                }
+            }
+            {% endif %}
+        {% endfor %}
+
         }
     }
 {% endfor %}

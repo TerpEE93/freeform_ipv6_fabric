@@ -5,7 +5,17 @@
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 replace: policy-options {
     policy-statement AllPodNetworks {
-        term AllPodNetworks-06 {
+        term AllPodNetworks-10 {
+            from {
+                family inet;
+                protocol direct;
+            }
+            then {
+                community add DEFAULT_DIRECT_V4;
+                accept;
+            }
+        }
+        term AllPodNetworks-20 {
             from {
                 family inet6;
                 protocol direct;
@@ -87,19 +97,25 @@ replace: policy-options {
 {% for ri in routing_instances %}
     {% if ri.vrf_name %}
     policy-statement AllPodNetworks-{{ ri.vrf_name }} {
-        term AllPodNetworks-{{ ri.vrf_name }}-04 {
+        term AllPodNetworks-{{ ri.vrf_name }}-10 {
             from {
                 family inet;
-                protocol direct;
+                protocol [ direct static ];
             }
-            then accept;
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V4;
+                accept;
+            }
         }
-        term AllPodNetworks-{{ ri.vrf_name }}-06 {
+        term AllPodNetworks-{{ ri.vrf_name }}-20 {
             from {
                 family inet6;
-                protocol direct;
+                protocol [ direct static ];
             }
-            then accept;
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V6;
+                accept;
+            }
         }
         term AllPodNetworks-{{ ri.vrf_name }}-100 {
             then reject;
@@ -112,14 +128,55 @@ replace: policy-options {
             }
             then accept;
         }
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-50 {
+            from {
+                protocol evpn;
+                route-filter 0.0.0.0/0 prefix-length-range /32-/32;
+            }
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V4;
+                accept;
+            }
+        }
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-60 {
+            from {
+                protocol evpn;
+                route-filter 0::0/0 prefix-length-range /128-/128;
+            }
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V6;
+                accept;
+            }
+        }
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-70 {
+            from protocol ospf;
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V4;
+                accept;
+            }
+        }
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-80 {
+            from protocol ospf3;
+            then {
+                community add {{ ri.vrf_name }}_COMMUNITY_V6;
+                accept;
+            }
+        }
         term BGP-AOS-Policy-{{ ri.vrf_name }}-100 {
             then reject;
         }
     }
     {% endif %}
 {% endfor %}
+    community DEFAULT_DIRECT_V4 members [ 3:20007 21001:26000 ];
     community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
     community FROM_SPINE_EVPN_TIER members 0:14;
     community FROM_SPINE_FABRIC_TIER members 0:15;
+{% for ri in routing_instances %}
+    {% if ri.vrf_name and ri.tenant_vni %}
+    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 3:20007 {{ ri.tenant_vni }}:26000 ];
+    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 3:20008 {{ ri.tenant_vni }}:26000 ];  
+    {% endif %}
+{% endfor %}
 }
 {# EOF #}
