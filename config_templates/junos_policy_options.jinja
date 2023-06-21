@@ -173,9 +173,9 @@ replace: policy-options {
     community FROM_SPINE_EVPN_TIER members 0:14;
     community FROM_SPINE_FABRIC_TIER members 0:15;
 {% for ri in routing_instances %}
-    {% if ri.vrf_name and ri.tenant_vni %}
-    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 3:20007 {{ ri.tenant_vni }}:26000 ];
-    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 3:20008 {{ ri.tenant_vni }}:26000 ];  
+    {% if ri.vrf_name and ri.vrf_vni %}
+    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 3:20007 {{ ri.vrf_vni }}:26000 ];
+    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 3:20008 {{ ri.vrf_vni }}:26000 ];  
     {% endif %}
 {% endfor %}
 }

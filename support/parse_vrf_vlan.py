@@ -20,8 +20,16 @@ import pandas as pd
 import json as j
 import sys
 
-vrf_vlan_dict = {}
+# Things you might want to change
+in_file = 'vrf_vlan.xlsx'       # Excel file to read in
+in_sheet = 'vrf_vlan_table'     # Sheet in Excel file with the data
+out_file = 'vrf_vlan.json'      # JSON file we write out
+vrf_vni_base = 9000             # The VRF VNI is this + the VRF index
+
+# Don't change these
 vlans = {}
+vrf_name = ''
+vrf_vlan_dict = {}
 ipv4_prefix_len = ''
 irb_gw4 = ''
 irb_gw4_a = ''
@@ -36,15 +44,12 @@ is_ospf = False
 is_static = False
 peer_ipv4 = ''
 peer_ipv6 = ''
+bgp_peer_asn = ''
 ospf_area = ''
-in_file = 'vrf_vlan.xlsx'
-in_sheet = 'vrf_vlan_table'
-out_file = 'vrf_vlan.json'
 err_msg = 'No error message.'
-tenant_vni_base = 9000
 
-def errorOut( tenant, vlan, message ):
-    print( '\nERROR in tenant ' + tenant + ', VLAN ' + vlan + ':\n' +
+def errorOut( vrf_name, vlan, message ):
+    print( '\nERROR in tenant ' + vrf_name + ', VLAN ' + vlan + ':\n' +
            message + '\n\n' )
     sys.exit( -1 )
     return
@@ -54,11 +59,14 @@ df = pd.read_excel(in_file, sheet_name=in_sheet)
 for row in list(range(len( df.index ))):
     s = df.iloc[ row ]
     if pd.notna( s[ 'VRF' ] ):
-        tenant = s.loc[ 'VRF' ]
+        vrf_name = s.loc[ 'VRF' ]
         index = int(s.loc[ 'vrf_index' ])
-        tenant_vni = tenant_vni_base + index
+        if pd.notna( s[ 'OSPF Area' ]):
+            ospf_area =  s[ 'OSPF Area' ]
+        else:
+            ospf_area = ''
+        vrf_vni = vrf_vni_base + index
         lo0_unit = index
-        vrf_name = tenant
         vlans = {}
 
     elif pd.notna(s[ 'VLAN' ]):
@@ -117,7 +125,12 @@ for row in list(range(len( df.index ))):
                 if not ( pd.notna( s[ 'Peer IPv4' ]) or
                          pd.notna( s[ 'Peer IPv4' ]) ):
                     err_msg = 'You must have either an IPv4 or IPv6 peer (or both) for BGP peering.'
-                    errorOut( tenant, s[ 'VLAN' ], err_msg )
+                    errorOut( vrf_name, s[ 'VLAN' ], err_msg )
+                if pd.notna( s[ 'BGP Peer ASN' ] ):
+                    bgp_peer_asn = int( s[ 'BGP Peer ASN' ] )
+                else:
+                    err_msg = 'You must define the peer ASN for BGP.'
+                    errorOut( vrf_name, s[ 'VLAN' ], err_msg )
             else:
                 is_bgp = False
                 
@@ -130,19 +143,16 @@ for row in list(range(len( df.index ))):
                 if not ( pd.notna( s[ 'Peer IPv4' ]) or
                          pd.notna( s[ 'Peer IPv4' ]) ):
                     err_msg = 'You must have either an IPv4 or IPv6 gateway (or both) for a static route.'
-                    errorOut( tenant, s[ 'VLAN' ], err_msg )
+                    errorOut( vrf_name, s[ 'VLAN' ], err_msg )
             else:
                 is_static = False
                 
             if s[ 'OSPF?' ] == 'Yes':
                 is_ospf = True
-                if pd.notna( s[ 'OSPF Area' ]):
-                    ospf_area = s[ 'OSPF Area' ]
-                else:
-                    err_msg = 'OSPF = Yes, but no OSPF area set.'
-                    errorOut( tenant, s[ 'VLAN' ], err_msg )
-            else:
-                is_ospf = False
+                if ospf_area == '':
+                    err_msg = 'OSPF = Yes, but no OSPF area set for VRF.'
+                    errorOut( vrf_name, s[ 'VLAN' ], err_msg )
+        
         else:
             is_border = False
 
@@ -163,10 +173,11 @@ for row in list(range(len( df.index ))):
                                         'is_ospf':is_ospf,
                                         'peer_ipv4':peer_ipv4,
                                         'peer_ipv6':peer_ipv6,
-                                        'ospf_area':ospf_area } } }
+                                        'bgp_peer_asn':bgp_peer_asn } } }
 
-        vrf_vlan_dict.update( { tenant:{ 'vrf_name':tenant,
-                                         'tenant_vni':tenant_vni,
+        vrf_vlan_dict.update( { vrf_name:{ 'vrf_name':vrf_name,
+                                         'vrf_vni':vrf_vni,
+                                         'ospf_area':ospf_area,
                                          'lo0_unit':index,
                                          'vlans':vlans} } )
 

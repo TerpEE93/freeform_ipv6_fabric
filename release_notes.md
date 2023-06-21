@@ -4,8 +4,21 @@ Just trying to keep track of changes as they're made.
 ## Version 0.5.0
 ### New features:
 - Added support for peering to an external gateway from within a routing zone
-  (VRF).  Current support is for BGP, OSPFv2 (for IPv4 networks), OSPFv3
-  (for IPv6 networks), and static routes.
+  (VRF).  Current support is for OSPFv2 (for IPv4 networks), OSPFv3
+  (for IPv6 networks), and a static default (0.0.0.0/0 for IPv4 and ::/0 for
+  IPv6).  BGP routing will be added later.
+
+- Added an IPv6 address to the ***em0*** interface.  I've highlighted em0 to be
+  clear that this is the only interface we handle.  So if your device management
+  interface is me0 (EX switches) or fxp0 (vjunos, MX, etc.) this will not work.
+  The IPv6 address assigned to the em0 interface comes from the variable
+  `mgt_prefix_v6` defined in the `custom_sys_properties.json` prepended to the
+  IPv4 address rendered by Apstra as the `management_ip` in the device context.
+  So you don't get to pick right now; you get what you get...
+
+- Also added a default IPv6 route ( ::/0 ) to the mgmt_junos routing instance
+  that points to a next-hop of `{{ mgt_prefix_v6 }}::1`.  Again, you don't get
+  to pick right now...
 
 ### Changed behavior:
 - Updated the junos_policy_options.jinja file to better match how the reference

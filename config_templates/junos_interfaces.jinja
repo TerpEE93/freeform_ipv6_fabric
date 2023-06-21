@@ -1,5 +1,6 @@
 {% set this_router = hostname %}
 {% set intf_prop = property_sets.get('interface_properties', {} ) %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
@@ -169,6 +170,18 @@ interfaces {
     }
         {% endif %}
     {% endfor %}
+{% endif %}
+{# Adding IPv6 for em0 here.#}
+{% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+    {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+    {% set mgt_v6_prefixlen = sys_prop.mgt_prefix_v6|to_prefixlen %}
+    em0 {
+        unit 0 {
+            family inet6 {
+                replace: address {{ mgt_prefix_v6 }}{{ management_ip }}/{{ mgt_v6_prefixlen }};
+            }
+        }
+    }
 {% endif %}
 }
 {# EOF #}

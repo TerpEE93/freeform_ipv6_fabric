@@ -1,9 +1,21 @@
-{% if 'leaf' in system_tags %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
+{# We'll use namespaces to track BGP/OSPF/Static across VLANs in a VRF #}
+{% set ns = namespace( ) %}
+{% set ns.is_bgp = false %}
+{% set ns.is_ospf = false %}
+{% set ns.is_ospf3 = false %}
+{% set ns.is_static_v4 = false %}
+{% set ns.is_static_v6 = false %}
+routing-instances {
+{# The heavy lifting happens on the leaf devices #}
+{% if 'leaf' in system_tags %}
 {% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
 {% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
 {% set rd = dev_router_id|to_ip %}
-{% set ns = namespace(dev_vlan_list = []) %}
+{# Because we already created the namespace above... #}
+{% set ns.dev_vlan_list = [] %}
 {% set vlan_list = [] %}
 {% for ri_item in routing_instances %}
     {% for key, value in ri_item.items() %}
@@ -23,7 +35,6 @@
         {% endfor%}
     {% endif %}
 {% endfor %}
-routing-instances {
 {% if ns.dev_vlan_list %}
     replace: VSWITCH {
         instance-type mac-vrf;
@@ -76,6 +87,18 @@ routing-instances {
     }
 {% endif %}
 {% for ri in routing_instances %}
+    {% set ns.is_bgp = false %}
+    {% set ns.is_ospf = false %}
+    {% set ns.is_ospf3 = false %}
+    {% set ns.is_static_v4 = false %}
+    {% set ns.is_static_v6 = false %}
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+        {% if vlan_items.is_bgp %}{% set ns.is_bgp = true %}{% endif %}
+        {% if vlan_items.is_ospf and vlan_items.irb_gateway4 != '' %}{% set ns.is_ospf = true %}{% endif %}
+        {% if vlan_items.is_ospf and vlan_items.irb_gateway6 != '' %}{% set ns.is_ospf3 = true %}{% endif %}
+        {% if vlan_items.is_static and vlan_items.peer_ipv4 != '' %}{% set ns.is_static_v4 = true %}{% endif %}
+        {% if vlan_items.is_static and vlan_items.peer_ipv6 != '' %}{% set ns.is_static_v6 = true %}{% endif %}
+    {% endfor %}
     replace: {{ri.vrf_name }} {
         instance-type vrf;
     {% if ri.lo0_unit %}
@@ -88,56 +111,104 @@ routing-instances {
             {% endif %}
         {% endif %}
     {% endfor %}
-        route-distinguisher {{ rd }}:{{ ri.tenant_vni }};
+        route-distinguisher {{ rd }}:{{ ri.vrf_vni }};
     {% if local_asn > 65535 %}
-        vrf-target target:{{ local_asn }}L:{{ ri.tenant_vni }};
+        vrf-target target:{{ local_asn }}L:{{ ri.vrf_vni }};
     {% else %}
-        vrf-target target:{{ local_asn }}:{{ ri.tenant_vni }};
+        vrf-target target:{{ local_asn }}:{{ ri.vrf_vni }};
     {% endif %}
         vrf-table-label;
         routing-options {
+            router-id {{ dev_router_id|to_ip }};
             multipath;
             auto-export;
+        {% if ns.is_static_v6 %}
+            rib {{ ri.vrf_name }}.inet6.0 {
+                static {
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.is_static %}
+                    route ::/0 next-hop {{ vlan_items.peer_ipv6 }};
+                {% endif %}
+            {% endfor %}
+                }
+            }
+        {% endif %}
+        {% if ns.is_static_v4 %}
+            static {
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.is_static %}
+                route 0.0.0.0/0 next-hop {{ vlan_items.peer_ipv4 }};
+                {% endif %}
+            {% endfor %}
+            }
+        {% endif %}
         }
         protocols {
             evpn {
                 ip-prefix-routes {
                     advertise direct-nexthop;
                     encapsulation vxlan;
-                    vni {{ ri.tenant_vni }};
+                    vni {{ ri.vrf_vni }};
                     export BGP-AOS-Policy-{{ ri.vrf_name }};
                 }
             }
-        {% for vlan, vlan_items in ri.vlans.iteritems() %}
-            {% if vlan_items.is_ospf and vlan_items.irb_gateway4 !="" and
-               vlan_items.ospf_area %}
+        {% if ns.is_bgp %}
+            bgp {
+                /* BGP goes here */
+            }
+        {% endif %}
+        {% if ns.is_ospf %}
             ospf {
-                area {{ vlan_items.ospf_area }} {
+                area {{ ri.ospf_area }} {
                     interface lo0.{{ ri.lo0_unit }} {
                         passive;
                     }
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.is_ospf %}
                     interface irb.{{ vlan_items.vlan_id }};
+                {% elif vlan_items.irb_gateway4 != '' %}
+                    interface irb.{{ vlan_items.vlan_id }} {
+                        passive;
+                    }
+                {% endif %}
+            {% endfor %}
                 }
             }
-            {% endif %}
-        {% endfor %}
-        {% for vlan, vlan_items in ri.vlans.iteritems() %}
-            {% if vlan_items.is_ospf and vlan_items.irb_gateway6 !="" and
-               vlan_items.ospf_area %}
+        {% endif %}
+        {% if ns.is_ospf3 %}
             ospf3 {
-                area {{ vlan_items.ospf_area }} {
+                area {{ ri.ospf_area }} {
                     interface lo0.{{ ri.lo0_unit }} {
                         passive;
                     }
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.is_ospf %}
                     interface irb.{{ vlan_items.vlan_id }};
+                {% elif  vlan_items.irb_gateway6 != '' %}
+                    interface irb.{{ vlan_items.vlan_id }} {
+                        passive;
+                    }
+                {% endif %}
+            {% endfor %}
                 }
             }
-            {% endif %}
-        {% endfor %}
-
+        {% endif %}
         }
     }
 {% endfor %}
-}
 {% endif %}
+{# That closes the leaf portion #}
+    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+    {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+    {{ mgt_vrf }} {
+        routing-options {
+            rib {{ mgt_vrf }}.inet6.0 {
+                static {
+                    replace: route ::/0 next-hop {{ mgt_prefix_v6 }}1;
+                }
+            }
+        }
+    }
+    {% endif %}
+}
 {# EOF #}
