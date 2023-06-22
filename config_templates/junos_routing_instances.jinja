@@ -112,28 +112,25 @@ routing-instances {
         {% endif %}
     {% endfor %}
         route-distinguisher {{ rd }}:{{ ri.vrf_vni }};
-    {% if local_asn > 65535 %}
-        vrf-target target:{{ local_asn }}L:{{ ri.vrf_vni }};
-    {% else %}
-        vrf-target target:{{ local_asn }}:{{ ri.vrf_vni }};
-    {% endif %}
+        vrf-target target:{{ ri.vrf_vni }}:1;
         vrf-table-label;
         routing-options {
             router-id {{ dev_router_id|to_ip }};
             multipath;
             auto-export;
-        {% if ns.is_static_v6 %}
             rib {{ ri.vrf_name }}.inet6.0 {
+                multipath;
+    {% if ns.is_static_v6 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
                 static {
-            {% for vlan, vlan_items in ri.vlans.iteritems() %}
-                {% if vlan_items.is_static %}
+        {% for vlan, vlan_items in ri.vlans.iteritems() %}
+            {% if vlan_items.is_static %}
                     route ::/0 next-hop {{ vlan_items.peer_ipv6 }};
-                {% endif %}
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
                 }
+    {% endif %}
             }
-        {% endif %}
-        {% if ns.is_static_v4 %}
+        {% if ns.is_static_v4 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             static {
             {% for vlan, vlan_items in ri.vlans.iteritems() %}
                 {% if vlan_items.is_static %}
@@ -152,12 +149,72 @@ routing-instances {
                     export BGP-AOS-Policy-{{ ri.vrf_name }};
                 }
             }
-        {% if ns.is_bgp %}
+        {% if ns.is_bgp and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             bgp {
-                /* BGP goes here */
+                group l3rtr {
+                    type external;
+                    multihop {
+                        ttl 1;
+                    }
+                    family inet {
+                        unicast {
+                            loops 2;
+                        }
+                    }
+                    family inet6 {
+                        unicast {
+                            loops 2;
+                        }
+                    }
+                    multipath {
+                        multiple-as;
+                    }
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.is_bgp and vlan_items.peer_ipv6 != '' %}
+                    {% set local_addr = vlan_items.irb_gateway6_a if 'gateway_A' in system_tags else vlan_items.irb_gateway6_b %}
+                    neighbor {{ vlan_items.peer_ipv6 }} {
+                        multihop {
+                            ttl 30;
+                        }
+                        local-address {{ local_addr }}
+                        hold-time 30;
+                        import ( RoutesFromExt-{{ ri.vrf_name }}-Default_immutable );
+                        family inet6 {
+                            unicast;
+                        }
+                        export ( RoutesToExt-{{ ri.vrf_name }}-Default_immutable );
+                        peer-as {{ vlan_items.bgp_peer_asn }};
+                        bfd-liveness-detection {
+                            minimum-interval 1000;
+                            multiplier 3;
+                        }
+                    }
+                {% endif %}
+                {% if vlan_items.is_bgp and vlan_items.peer_ipv4 != '' %}
+                    {% set local_addr = vlan_items.irb_gateway4_a if 'gateway_A' in system_tags else vlan_items.irb_gateway4_b %}
+                    neighbor {{ vlan_items.peer_ipv4 }} {
+                        multihop {
+                            ttl 30;
+                        }
+                        local-address {{ local_addr }}
+                        hold-time 30;
+                        import ( RoutesFromExt-{{ ri.vrf_name }}-Default_immutable );
+                        family inet {
+                            unicast;
+                        }
+                        export ( RoutesToExt-{{ ri.vrf_name }}-Default_immutable );
+                        peer-as {{ vlan_items.bgp_peer_asn }};
+                        bfd-liveness-detection {
+                            minimum-interval 1000;
+                            multiplier 3;
+                        }
+                    }
+                {% endif %}
+            {% endfor %}
+                }
             }
         {% endif %}
-        {% if ns.is_ospf %}
+        {% if ns.is_ospf and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf {
                 area {{ ri.ospf_area }} {
                     interface lo0.{{ ri.lo0_unit }} {
@@ -175,7 +232,7 @@ routing-instances {
                 }
             }
         {% endif %}
-        {% if ns.is_ospf3 %}
+        {% if ns.is_ospf3 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf3 {
                 area {{ ri.ospf_area }} {
                     interface lo0.{{ ri.lo0_unit }} {

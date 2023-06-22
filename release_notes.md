@@ -4,9 +4,9 @@ Just trying to keep track of changes as they're made.
 ## Version 0.5.0
 ### New features:
 - Added support for peering to an external gateway from within a routing zone
-  (VRF).  Current support is for OSPFv2 (for IPv4 networks), OSPFv3
+  (VRF).  Current support is for BGP, OSPFv2 (for IPv4 networks), OSPFv3
   (for IPv6 networks), and a static default (0.0.0.0/0 for IPv4 and ::/0 for
-  IPv6).  BGP routing will be added later.
+  IPv6).
 
 - Added an IPv6 address to the ***em0*** interface.  I've highlighted em0 to be
   clear that this is the only interface we handle.  So if your device management
@@ -19,6 +19,12 @@ Just trying to keep track of changes as they're made.
 - Also added a default IPv6 route ( ::/0 ) to the mgmt_junos routing instance
   that points to a next-hop of `{{ mgt_prefix_v6 }}::1`.  Again, you don't get
   to pick right now...
+
+- SLAAC is now supported on routed virtual networks (think VLAN with an IRB
+  interface).
+
+- The `[edit system]` capabilities from version 0.3.0 now support declaring
+  the IPv6 address associated with em0.0 as the source for these capabilities.
 
 ### Changed behavior:
 - Updated the junos_policy_options.jinja file to better match how the reference
@@ -33,6 +39,12 @@ Just trying to keep track of changes as they're made.
   should include a peer from the appropriate address family.  For OSPF, the
   user should include the OSPF Area ID.  There are rudimentary checks for peers
   and OSPF are in the parse_vrf_vlan.py script.
+
+### Bug fixes:
+- Previous releases set the protocol MTU for IRB interfaces incorrectly at the
+  `[edit interfaces irb]` level.  This needed to be moved into the protocol
+  families instead (e.g., `[edit interfaces irb unit 99 family inet]`).  That
+  issue is now fixed.
 
 ## Version 0.4.1
 ### Changed behavior:

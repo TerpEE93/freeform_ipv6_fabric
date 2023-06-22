@@ -3,7 +3,50 @@
     per Tenant
 #}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
+{% set ns = namespace( ) %}
+{% set ns.ri_w_bgp = [] %}
+{% set ns.ri_w_ospf = [] %}
+{% set ns.ri_w_static = [] %}
+{% for ri in routing_instances %}
+    {% for vlan, vlan_items in ri.vlans.iteritems() %}
+        {% if vlan_items.is_bgp %}{{ ns.ri_w_bgp.append(ri.vrf_name) or '' }}{% endif %}
+        {% if vlan_items.is_ospf %}{{ ns.ri_w_ospf.append(ri.vrf_name) or '' }}{% endif %}
+        {% if vlan_items.is_static %}{{ ns.ri_w_static.append(ri.vrf_name) or '' }}{% endif %}
+    {% endfor %}
+{% endfor %}
+{% set is_border = false %}
+{% if 'gateway_A' in system_tags or 'gateway_B' in system_tags %}
+    {% set is_border = true %}
+{% endif %}
 replace: policy-options {
+{% if is_border %}
+    {% for ri in routing_instances %}
+        {% if ri.vrf_name %}
+    route-filter-list RoutesFromExt-{{ ri.vrf_name }}-Default_immutable{
+        0.0.0.0/0 upto /32;
+    }
+    route-filter-list RoutesFromExtV6-{{ ri.vrf_name }}-Default_immutable{
+        0::0/0 upto /128;
+    }
+    route-filter-list RoutesToExt-{{ ri.vrf_name }}-Default_immutable {
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.irb_gateway4 != '' %}
+                    {% set irb_prefix = [ vlan_items.irb_gateway4, vlan_items.ipv4_prefix_len ]|join('/')|to_network %}
+                    {{ irb_prefix }}/{{ vlan_items.ipv4_prefix_len }} upto /32;
+                {% endif %}
+            {% endfor %}
+    }
+    route-filter-list RoutesToExtV6-{{ ri.vrf_name }}-Default_immutable {
+            {% for vlan, vlan_items in ri.vlans.iteritems() %}
+                {% if vlan_items.irb_gateway6 != '' %}
+                    {% set irb_prefix = [ vlan_items.irb_gateway6, vlan_items.ipv6_prefix_len ]|join('/')|to_network %}
+                    {{ irb_prefix }}/{{ vlan_items.ipv6_prefix_len }} upto /128;
+                {% endif %}
+            {% endfor %}
+    }
+        {% endif %}
+    {% endfor %}
+{% endif %}
     policy-statement AllPodNetworks {
         term AllPodNetworks-10 {
             from {
@@ -40,6 +83,22 @@ replace: policy-options {
             }
             then accept;
         }
+{% if ns.ri_w_bgp != '' %}
+        term BGP-AOS-Policy-50 {
+            from {
+                protocol evpn;
+                route-filter 0.0.0.0/0 prefix-length-range /32-/32;
+            }
+            then accept;
+        }
+        term BGP-AOS-Policy-60 {
+            from {
+                protocol evpn;
+                route-filter 0::0/0 prefix-length-range /128-/128;
+            }
+            then accept;
+        }
+{% endif %}
         term BGP-AOS-Policy-100 {
             then reject;
         }
@@ -61,6 +120,7 @@ replace: policy-options {
             then accept;
         }
     }
+{% if 'leaf' in system_tags %}
     policy-statement LEAF_TO_SPINE_FABRIC_OUT {
         term LEAF_TO_SPINE_FABRIC_OUT-10 {
             from {
@@ -73,6 +133,8 @@ replace: policy-options {
             then accept;
         }
     }
+{% endif %}
+{% if 'spine' in system_tags %}
     policy-statement SPINE_TO_LEAF_EVPN_OUT {
         term SPINE_TO_LEAF_EVPN_OUT-10 {
             then {
@@ -89,6 +151,7 @@ replace: policy-options {
             }
         }
     }
+{% endif %}
     policy-statement PFE-LB {
         then {
             load-balance per-packet;
@@ -100,7 +163,7 @@ replace: policy-options {
         term AllPodNetworks-{{ ri.vrf_name }}-10 {
             from {
                 family inet;
-                protocol [ direct static ];
+                protocol [ direct {% if ri.vrf_name in ns.ri_w_static %}static {% endif %}];
             }
             then {
                 community add {{ ri.vrf_name }}_COMMUNITY_V4;
@@ -110,7 +173,7 @@ replace: policy-options {
         term AllPodNetworks-{{ ri.vrf_name }}-20 {
             from {
                 family inet6;
-                protocol [ direct static ];
+                protocol [ direct {% if ri.vrf_name in ns.ri_w_static %}static {% endif %}];
             }
             then {
                 community add {{ ri.vrf_name }}_COMMUNITY_V6;
@@ -128,6 +191,12 @@ replace: policy-options {
             }
             then accept;
         }
+        {% if is_border and ri.vrf_name in ns.ri_w_bgp %}
+        term BGP-AOS-Policy-{{ ri.vrf_name }}-20 {
+            from protocol bgp;
+            then accept;
+        }
+        {% endif %}
         term BGP-AOS-Policy-{{ ri.vrf_name }}-50 {
             from {
                 protocol evpn;
@@ -148,6 +217,7 @@ replace: policy-options {
                 accept;
             }
         }
+        {% if is_border and ri.vrf_name in ns.ri_w_ospf %}
         term BGP-AOS-Policy-{{ ri.vrf_name }}-70 {
             from protocol ospf;
             then {
@@ -162,20 +232,90 @@ replace: policy-options {
                 accept;
             }
         }
+        {% endif %}
         term BGP-AOS-Policy-{{ ri.vrf_name }}-100 {
             then reject;
         }
     }
+        {% if is_border %}
+    policy-statement RoutesToExt-{{ ri.vrf_name }}-Default_immutable {
+        term RoutesToExt-{{ ri.vrf_name }}-Default_immutable-10 {
+            from {
+                family inet;
+                route-filter-list RoutesToExt-{{ ri.vrf_name }}-Default_immutable;
+            }
+            then {
+                community delete FABRIC_COMMUNITIES;
+                accept;
+            }
+        }
+        term RoutesToExt-{{ ri.vrf_name }}-Default_immutable-20 {
+            from {
+                family inet6;
+                route-filter-list RoutesToExtV6-{{ ri.vrf_name }}-Default_immutable;
+            }
+            then {
+                community delete FABRIC_COMMUNITIES;
+                accept;
+            }
+        }
+        term RoutesToExt-{{ ri.vrf_name }}-Default_immutable-30 {
+            from family inet;
+            then reject;
+        }
+        term RoutesToExt-{{ ri.vrf_name }}-Default_immutable-40 {
+            from family inet6;
+            then reject;
+        }
+    }
+    policy-statement RoutesFromExt-{{ ri.vrf_name }}-Default_immutable {
+        term RoutesFromExt-{{ ri.vrf_name }}-Default_immutable-10 {
+            from {
+                family inet;
+                route-filter-list RoutesFromExt-{{ ri.vrf_name }}-Default_immutable;
+            }
+            then {
+                community add RoutesFromExt-{{ ri.vrf_name }}-Default_immutable;
+                accept;
+            }
+        }
+        term RoutesFromExt-{{ ri.vrf_name }}-Default_immutable-20 {
+            from {
+                family inet6;
+                route-filter-list RoutesFromExtV6-{{ ri.vrf_name }}-Default_immutable;
+            }
+            then {
+                community delete RoutesFromExtV6-{{ ri.vrf_name }}-Default_immutable;
+                accept;
+            }
+        }
+        term RoutesFromExt-{{ ri.vrf_name }}-Default_immutable-30 {
+            from family inet;
+            then reject;
+        }
+        term RoutesFromExt-{{ ri.vrf_name }}-Default_immutable-40 {
+            from family inet6;
+            then reject;
+        }
+    }
+        {% endif %}
     {% endif %}
 {% endfor %}
     community DEFAULT_DIRECT_V4 members [ 3:20007 21001:26000 ];
     community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
     community FROM_SPINE_EVPN_TIER members 0:14;
     community FROM_SPINE_FABRIC_TIER members 0:15;
+{% if is_border %}
+    community FABRIC_COMMUNITIES members [ 0:12 0:13 0:14 0:15 .+:200.. 2....:260.. 9...:260.. ];
+{% endif %}
 {% for ri in routing_instances %}
     {% if ri.vrf_name and ri.vrf_vni %}
-    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 3:20007 {{ ri.vrf_vni }}:26000 ];
-    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 3:20008 {{ ri.vrf_vni }}:26000 ];  
+    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 5:20007 {{ ri.vrf_vni }}:26000 ];
+    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 5:20008 {{ ri.vrf_vni }}:26000 ];
+        {% if is_border %}
+    community RoutesFromExt-{{ ri.vrf_name }}-Default_immutable members [ 5:20009 {{ ri.vrf_vni }}:26000 ];
+    community RoutesFromExtV6-{{ ri.vrf_name }}-Default_immutable members [ 5:20010 {{ ri.vrf_vni }}:26000 ];
+        {% endif %}
     {% endif %}
 {% endfor %}
 }

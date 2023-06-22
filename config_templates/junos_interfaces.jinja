@@ -121,7 +121,6 @@ interfaces {
     {% for ri in routing_instances %}
         {% if loop.first %}
     replace: irb {
-        mtu {{ intf_prop.irb_intf_mtu }};
         {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
         {% if vlan in ns.dev_vlan_list %}
@@ -135,11 +134,13 @@ interfaces {
             mac 00:1c:73:00:00:01;
             {% if vlan_items.irb_gateway4 %}
             family inet {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan_items.irb_gateway4 }}/{{ vlan_items.ipv4_prefix_len }};
             }
             {% endif %}
             {% if vlan_items.irb_gateway6 %}
             family inet6 {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan_items.irb_gateway6 }}/{{ vlan_items.ipv6_prefix_len }};
             }
             {% endif %}
@@ -147,6 +148,7 @@ interfaces {
         {% else %}
             {% if vlan_items.irb_gateway4 %}
             family inet {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 {% set  gateway4 = vlan_items.irb_gateway4_a if 'gateway_A' in system_tags else vlan_items.irb_gateway4_b %}
                 address {{ gateway4}}/{{vlan_items.ipv4_prefix_len}} {
                     virtual-gateway-address {{ vlan_items.irb_gateway4 }}
@@ -155,6 +157,7 @@ interfaces {
             {% endif %}
             {% if vlan_items.irb_gateway6 %}
             family inet6 {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 {% set  gateway6 = vlan_items.irb_gateway6_a if 'gateway_A' in system_tags else vlan_items.irb_gateway6_b %}
                 address {{ gateway6}}/{{vlan_items.ipv6_prefix_len}} {
                     virtual-gateway-address {{ vlan_items.irb_gateway6 }}

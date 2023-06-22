@@ -1,5 +1,11 @@
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
+{% set is_mgt_v6 = false %}
+{% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+    {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+    {% set management_ipv6 = [ mgt_prefix_v6, management_ip ]|join %}
+    {% set is_mgt_v6 = true%}
+{% endif %}
 
 system {
     {% if hostname %}
@@ -25,6 +31,9 @@ system {
             routing-instance {{ mgt_vrf }};
             port {{ dict_item['port'] }};
             secret {{ dict_item['secret'] }};
+            {% if is_mgt_v6 %}
+            source-address {{ management_ipv6 }};
+            {% endif %}
         }
         {% endfor %}
     }
@@ -34,7 +43,11 @@ system {
         {% for server in sys_prop.ntp.servers %}
         server {{ server }};
         {% endfor %}
+        {% if is_mgt_v6 %}
+        source-address {{ management_ipv6 }} routing-instance {{ mgt_vrf }};
+        {% else %}
         source-address {{ management_ip }} routing-instance {{ mgt_vrf }};
+        {% endif %}
     }
     {% endif %}
     {% if 'syslog_common' in sys_prop %}
@@ -46,6 +59,10 @@ system {
         time-format {%- for v in sys_prop.syslog_common.time_format %} {{ v}} {%- endfor %};
         {%- endif %} 
     {% if 'syslog_hosts' in sys_prop %}
+        {% if is_mgt_v6 %}
+        source-address {{ management_ipv6 }};
+        {% endif %}
+        routing-instance {{ mgt_vrf }};
         {% for k, v in sys_prop.syslog_hosts.items()%}
         host {{ k }} {
             {% for dict_item in v %}
@@ -64,7 +81,5 @@ system {
         {% endfor %}
     {% endif %}
     }
-    {% endif %}
-
 }
 {# EOF #}
