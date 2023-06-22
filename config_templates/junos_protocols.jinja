@@ -38,13 +38,15 @@ replace: protocols {
         {% for vlan, vlan_items in ri.vlans.iteritems() %}
             {% if vlan in ns.dev_vlan_list %}
                 {% if vlan_items.irb_gateway6 %}
+                    {% set irb_prefix = [ vlan_items.irb_gateway6, vlan_items.ipv6_prefix_len ]|join('/')|to_network %}
         interface irb.{{ vlan_items.vlan_id }} {
             max-advertisement-interval 30;
             min-advertisement-interval 10;
+            prefix {{ irb_prefix }}/{{ vlan_items.ipv6_prefix_len }};
         }
                 {% endif %}
-        {% endif %}
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
     {% endfor %}
 {% endif %}
     }

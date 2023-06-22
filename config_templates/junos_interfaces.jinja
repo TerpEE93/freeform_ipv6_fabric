@@ -1,5 +1,6 @@
 {% set this_router = hostname %}
 {% set intf_prop = property_sets.get('interface_properties', {} ) %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
@@ -120,7 +121,6 @@ interfaces {
     {% for ri in routing_instances %}
         {% if loop.first %}
     replace: irb {
-        mtu {{ intf_prop.irb_intf_mtu }};
         {% endif %}
     {% for vlan, vlan_items in ri.vlans.iteritems() %}
         {% if vlan in ns.dev_vlan_list %}
@@ -134,11 +134,13 @@ interfaces {
             mac 00:1c:73:00:00:01;
             {% if vlan_items.irb_gateway4 %}
             family inet {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan_items.irb_gateway4 }}/{{ vlan_items.ipv4_prefix_len }};
             }
             {% endif %}
             {% if vlan_items.irb_gateway6 %}
             family inet6 {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan_items.irb_gateway6 }}/{{ vlan_items.ipv6_prefix_len }};
             }
             {% endif %}
@@ -146,6 +148,7 @@ interfaces {
         {% else %}
             {% if vlan_items.irb_gateway4 %}
             family inet {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 {% set  gateway4 = vlan_items.irb_gateway4_a if 'gateway_A' in system_tags else vlan_items.irb_gateway4_b %}
                 address {{ gateway4}}/{{vlan_items.ipv4_prefix_len}} {
                     virtual-gateway-address {{ vlan_items.irb_gateway4 }}
@@ -154,6 +157,7 @@ interfaces {
             {% endif %}
             {% if vlan_items.irb_gateway6 %}
             family inet6 {
+                mtu {{ intf_prop.irb_intf_mtu }};
                 {% set  gateway6 = vlan_items.irb_gateway6_a if 'gateway_A' in system_tags else vlan_items.irb_gateway6_b %}
                 address {{ gateway6}}/{{vlan_items.ipv6_prefix_len}} {
                     virtual-gateway-address {{ vlan_items.irb_gateway6 }}
@@ -169,6 +173,18 @@ interfaces {
     }
         {% endif %}
     {% endfor %}
+{% endif %}
+{# Adding IPv6 for em0 here.#}
+{% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+    {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+    {% set mgt_v6_prefixlen = sys_prop.mgt_prefix_v6|to_prefixlen %}
+    em0 {
+        unit 0 {
+            family inet6 {
+                replace: address {{ mgt_prefix_v6 }}{{ management_ip }}/{{ mgt_v6_prefixlen }};
+            }
+        }
+    }
 {% endif %}
 }
 {# EOF #}
