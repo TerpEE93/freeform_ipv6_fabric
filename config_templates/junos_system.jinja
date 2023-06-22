@@ -15,7 +15,7 @@ system {
     domain-name {{ sys_prop.domain_name }};
     {% endif %}
     {% if 'auth_order' in sys_prop %}
-    replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor%}];
+    replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor %}];
     {% endif %}
     {% if 'dns' in sys_prop %}
     replace: name-server {
@@ -58,28 +58,29 @@ system {
         {% if 'time_format' in sys_prop.syslog_common %}
         time-format {%- for v in sys_prop.syslog_common.time_format %} {{ v}} {%- endfor %};
         {%- endif %} 
-    {% if 'syslog_hosts' in sys_prop %}
-        {% if is_mgt_v6 %}
+        {% if 'syslog_hosts' in sys_prop %}
+            {% if is_mgt_v6 %}
         source-address {{ management_ipv6 }};
-        {% endif %}
+            {% endif %}
         routing-instance {{ mgt_vrf }};
-        {% for k, v in sys_prop.syslog_hosts.items()%}
+            {% for k, v in sys_prop.syslog_hosts.items()%}
         host {{ k }} {
-            {% for dict_item in v %}
+                {% for dict_item in v %}
             {{ dict_item['facility'] }} {{ dict_item['priority'] }};
-            {% endfor %}
+                {% endfor %}
         }
-        {% endfor %}
-    {% endif %}
-    {% if 'syslog_files' in sys_prop %}
-        {% for k, v in sys_prop.syslog_files.items()%}
+            {% endfor %}
+        {% endif %}
+        {% if 'syslog_files' in sys_prop %}
+            {% for k, v in sys_prop.syslog_files.items()%}
         file {{ k }} {
-            {% for dict_item in v %}
+                {% for dict_item in v %}
             {{ dict_item['facility'] }} {{ dict_item['priority'] }};
-            {% endfor %}
+                {% endfor %}
         }
-        {% endfor %}
-    {% endif %}
+            {% endfor %}
+        {% endif %}
     }
+    {% endif %}
 }
 {# EOF #}
