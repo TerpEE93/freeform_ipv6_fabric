@@ -1,9 +1,26 @@
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
-{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources','devices') %}
-{% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
-{% set bgp_ns = namespace(neighbor_asn=None) %}
-{% set ns = namespace(dev_vlan_list = []) %}
+{% set prot_prop = property_sets.get('protocol_properties', {} ) %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set ns = namespace ( ) %}
+{% set ns.neighbor_asn = None %}
+{% set ns.neighbor_loopback = None %}
+{% set ns.dev_vlan_list = [] %}
+{% set ns.nameserver_list = [] %}
+{% for server in sys_prop.dns.servers %}
+    {{ns.nameserver_list.append( server ) or '' }}
+{% endfor %}
 {% set vlan_list = [] %}
+{# Compute a Junos-friendly loopback address from what resource generator created #}
+{% set loopback_prefix = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
+{% if loopback_prefix != '' %}
+    {% if loopback_prefix|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' 
+       or loopback_prefix|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+        {% set loopback_ipv6 = loopback_prefix|to_ip %}
+    {% else %}
+        {% set loopback_ipv6 = loopback_prefix|replace( '::/', '::1/')|to_ip %}
+    {% endif %}
+{% endif %}
+{% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
 {% for ri_item in routing_instances %}
     {% for key, value in ri_item.items() %}
         {% if key == 'vlans' %}
@@ -17,7 +34,7 @@
     {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         {% for vlan in vlan_list %}
             {% if vlan in iface.link_tags %}
-                {{ ns.dev_vlan_list.append(vlan) or "" }}
+                {{ ns.dev_vlan_list.append(vlan) or '' }}
             {% endif %}
         {% endfor%}
     {% endif %}
@@ -28,8 +45,8 @@ replace: protocols {
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
         interface {{ interface_name }}.0 {
-            max-advertisement-interval 30;
-            min-advertisement-interval 10;
+            max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
+            min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
         }
     {% endif %}
 {% endfor %}
@@ -40,9 +57,17 @@ replace: protocols {
                 {% if vlan_items.irb_gateway6 %}
                     {% set irb_prefix = [ vlan_items.irb_gateway6, vlan_items.ipv6_prefix_len ]|join('/')|to_network %}
         interface irb.{{ vlan_items.vlan_id }} {
-            max-advertisement-interval 30;
-            min-advertisement-interval 10;
-            prefix {{ irb_prefix }}/{{ vlan_items.ipv6_prefix_len }};
+            max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
+            min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
+                    {% for server in ns.nameserver_list %}
+            dns-server-address {{ server }} {
+                lifetime {{ prot_prop.router_advertisement.rdnss_lifetime }};
+            }
+                    {% endfor %}
+            prefix {{ irb_prefix }}/{{ vlan_items.ipv6_prefix_len }} {
+                preferred-lifetime {{ prot_prop.router_advertisement.prefix_pref_lifetime }};
+                valid-lifetime {{ prot_prop.router_advertisement.prefix_val_lifetime }};
+            }
         }
                 {% endif %}
             {% endif %}
@@ -81,8 +106,8 @@ replace: protocols {
                 multiple-as;
             }
             bfd-liveness-detection {
-                minimum-interval 1000;
-                multiplier 3;
+                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
 {% for interface_name, iface in interfaces.iteritems() %}
@@ -91,9 +116,9 @@ replace: protocols {
     {% endif %}
     {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
             neighbor {{ neighbor_interface.ipv6_address }} {
-                peer-as {{ bgp_ns.neighbor_asn }};
+                peer-as {{ ns.neighbor_asn }};
             }
     {% endfor %}
 {% endfor %}
@@ -113,11 +138,11 @@ replace: protocols {
                 }
             }
             bfd-liveness-detection {
-                minimum-interval 3000;
-                multiplier 3;
+                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-            local-address {{ loopback_ipv6|to_ip }};
+            local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if not iface.get('ipv6_address') %}
@@ -125,10 +150,16 @@ replace: protocols {
     {% endif %}
     {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
-		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            neighbor {{ bgp_ns.neighbor_loopback|to_ip }} {
-                peer-as {{ bgp_ns.neighbor_asn }};
+		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+            {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+               or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+               {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
+            {% else %}
+                {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
+            {% endif %}
+            neighbor {{ peer_ipv6 }} {
+                peer-as {{ ns.neighbor_asn }};
             }
     {% endfor %}
 {% endfor %}
@@ -145,8 +176,8 @@ replace: protocols {
                 multiple-as;
             }
             bfd-liveness-detection {
-                minimum-interval 1000;
-                multiplier 3;
+                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
 {% for interface_name, iface in interfaces.iteritems() %}
@@ -155,9 +186,9 @@ replace: protocols {
     {% endif %}
     {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
             neighbor {{ neighbor_interface.ipv6_address }} {
-                peer-as {{ bgp_ns.neighbor_asn }};
+                peer-as {{ ns.neighbor_asn }};
             }
     {% endfor %}
 {% endfor %}
@@ -175,11 +206,11 @@ replace: protocols {
                 signaling;
             }
             bfd-liveness-detection {
-                minimum-interval 3000;
-                multiplier 3;
+                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-            local-address {{ loopback_ipv6|to_ip }};
+            local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT )
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if not iface.get('ipv6_address') %}
@@ -187,10 +218,16 @@ replace: protocols {
     {% endif %}
     {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
     {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set bgp_ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
-		{% set bgp_ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            neighbor {{ bgp_ns.neighbor_loopback|to_ip }} {
-                peer-as {{ bgp_ns.neighbor_asn }};
+		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		{% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+            {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+               or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+               {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
+            {% else %}
+                {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
+            {% endif %}
+            neighbor {{ peer_ipv6 }} {
+                peer-as {{ ns.neighbor_asn }};
             }
     {% endfor %}
 {% endfor %}

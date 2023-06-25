@@ -1,6 +1,33 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.6.0
+### New features:
+- Added support for TACACS+ in the `[edit system]` container.  Now you can do
+  authentication via RADIUS, TACACS+, or local password.
+
+- Also added support for accounting via RADIUS and TACACS+.  There was already
+  support for accounting via SYSLOG (via the authorization, change-log, and
+  interactive-command facilities), and now we have better AAA integrations
+  too.
+
+- Added support for RNDS service on routed virtual networks.  This is an
+  enhancement to the SLAAC support that was added in 0.5.0. 
+
+### Changed behavior:
+- Created a new property set called `protocol_properties.json` where we can
+  store timer defaults, etc., for use in the `[edit protocols]` and
+  `[edit routing-instances <instance> protocols]` containers.  If we need to
+  tweak timers, this will make it much easier.
+
+### Bug fixes:
+- Apstra and Junos disagree on whether the address <some_prefix>::/<mask> is a
+  valid address for a loopback interface, where mask != 127 or 128, so we need
+  to make Junos happy.  Now we check the mask assigned to the IPv6 address.
+  If the mask is /127 or /128, we leave the Apstra generated address as-is.  If
+  the mask is anything else, we set the loopback loopback IPv6 address as
+  <some_prefix>::1/<mask>.
+
 ## Version 0.5.0
 ### New features:
 - Added support for peering to an external gateway from within a routing zone
