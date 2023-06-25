@@ -24,18 +24,75 @@ system {
         {% endfor %}
     }
     {% endif %}
-    {% if 'radius' in sys_prop %}
+    {% if 'radius' in sys_prop and 'radius' in sys_prop.auth_order %}
     replace: radius-server {
         {% for dict_item in sys_prop.radius.servers %}
         {{ dict_item['host_ip'] }} {
             routing-instance {{ mgt_vrf }};
             port {{ dict_item['port'] }};
             secret {{ dict_item['secret'] }};
+            timeout {{ dict_item['timeout'] }};
             {% if is_mgt_v6 %}
             source-address {{ management_ipv6 }};
             {% endif %}
         }
         {% endfor %}
+    }
+    {% endif %}
+    {% if 'tacplus' in sys_prop and 'tacplus' in sys_prop.auth_order %}
+    replace: tacplus-server {
+        {% for dict_item in sys_prop.tacplus.servers %}
+        {{ dict_item['host_ip'] }} {
+            routing-instance {{ mgt_vrf }};
+            port {{ dict_item['port'] }};
+            secret {{ dict_item['secret'] }};
+            timeout {{ dict_item['timeout'] }};
+            single-connection;
+            {% if is_mgt_v6 %}
+            source-address {{ management_ipv6 }};
+            {% endif %}
+        }
+        {% endfor %}
+    }
+    {% endif %}
+    {% if 'accounting_dest' in sys_prop and sys_prop.accounting_dest != '' %}
+    replace: accounting {
+        events [ login change-log interactive-commands ];
+        destination {
+        {% if sys_prop.accounting_dest == 'radius' %}
+            radius {
+                server {
+            {% for dict_item in sys_prop.tacplus.servers %}
+                    {{ dict_item['host_ip'] }} {
+                        routing-instance {{ mgt_vrf }};
+                        secret {{ dict_item['secret'] }};
+                        timeout {{ dict_item['timeout'] }};
+                {% if is_mgt_v6 %}
+                        source-address {{ management_ipv6 }};
+                {% endif %}
+                    }
+            {% endfor%}
+                }
+            }
+        {% endif %}
+        {% if sys_prop.accounting_dest == 'tacplus' %}
+            tacplus {
+                server {
+            {% for dict_item in sys_prop.tacplus.servers %}
+                    {{ dict_item['host_ip'] }} {
+                        routing-instance {{ mgt_vrf }};
+                        secret {{ dict_item['secret'] }};
+                        timeout {{ dict_item['timeout'] }};
+                        single-connection;
+                {% if is_mgt_v6 %}
+                        source-address {{ management_ipv6 }};
+                {% endif %}
+                    }
+            {% endfor%}
+                }
+            }
+        {% endif %}
+        }
     }
     {% endif %}
     {% if 'ntp' in sys_prop %}

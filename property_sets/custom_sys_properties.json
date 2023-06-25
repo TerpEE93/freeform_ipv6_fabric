@@ -1,6 +1,7 @@
 {
     "domain_name": "jnpr.net",
     "auth_order": [ "password", "radius" ],
+    "accounting_dest": "radius",
     "mgt_vrf": "mgmt_junos",
     "mgt_prefix_v6": "2601:de2a:aa01:1003::/64",
     "ntp": {
@@ -17,8 +18,14 @@
     },
     "radius": {
         "servers": [
-            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": 1812 },
-            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": 1812 }
+            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "1812", "timeout": "5" },
+            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "1812", "timeout": "5" }
+        ]
+    },
+    "tacplus": {
+        "servers": [
+            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "49", "timeout": "5" },
+            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "49", "timeout": "5" }
         ]
     },
     "syslog_common": {

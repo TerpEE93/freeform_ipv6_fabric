@@ -1,7 +1,15 @@
 {% set this_router = hostname %}
 {% set intf_prop = property_sets.get('interface_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
-{% set loopback_ipv6 = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
+{% set loopback_prefix = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
+{% if loopback_prefix != '' %}
+    {% if loopback_prefix|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' 
+       or loopback_prefix|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+        {% set loopback_ipv6 = loopback_prefix %}
+    {% else %}
+        {% set loopback_ipv6 = loopback_prefix|replace( '::/', '::1/') %}
+    {% endif %}
+{% endif %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% set ns = namespace(dev_vlan_list = []) %}
@@ -105,15 +113,15 @@ interfaces {
                 address {{ loopback_ipv6 }};
             }
         }
-{% if 'leaf' in system_tags %}
-    {% for ri in routing_instances %}
-        {% if ri.lo0_unit %}
+    {% if 'leaf' in system_tags %}
+        {% for ri in routing_instances %}
+            {% if ri.lo0_unit %}
         unit {{ ri.lo0_unit }} {
             family inet6;
         }
-        {% endif %}
-    {% endfor %}  
-{% endif %}  
+            {% endif %}
+        {% endfor %}  
+    {% endif %}  
     }
 {% endif %}
 {# And now for the IRB interfaces #}

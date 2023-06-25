@@ -1,5 +1,6 @@
 {% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set prot_prop = property_sets.get('protocol_properties', {} ) %}
 {% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
 {# We'll use namespaces to track BGP/OSPF/Static across VLANs in a VRF #}
 {% set ns = namespace( ) %}
@@ -185,8 +186,8 @@ routing-instances {
                         export ( RoutesToExt-{{ ri.vrf_name }}-Default_immutable );
                         peer-as {{ vlan_items.bgp_peer_asn }};
                         bfd-liveness-detection {
-                            minimum-interval 1000;
-                            multiplier 3;
+                            minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                            multiplier {{ prot_prop.bgp.bfd_multiplier }};
                         }
                     }
                 {% endif %}
@@ -205,8 +206,8 @@ routing-instances {
                         export ( RoutesToExt-{{ ri.vrf_name }}-Default_immutable );
                         peer-as {{ vlan_items.bgp_peer_asn }};
                         bfd-liveness-detection {
-                            minimum-interval 1000;
-                            multiplier 3;
+                            minimum-interval {{ prot_prop.bgp.bfd_min_int }};
+                            multiplier {{ prot_prop.bgp.bfd_multiplier }};
                         }
                     }
                 {% endif %}
