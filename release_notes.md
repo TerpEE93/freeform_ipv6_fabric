@@ -12,7 +12,12 @@ Just trying to keep track of changes as they're made.
   too.
 
 - Added support for RNDS service on routed virtual networks.  This is an
-  enhancement to the SLAAC support that was added in 0.5.0. 
+  enhancement to the SLAAC support that was added in 0.5.0.
+
+- Added a folder called `json_for_import` which includes the config templates
+  exported from Apstra as JSON formatted files.  You can import these files
+  into Apstra by clicking the Create Config Template button and then clicking
+  the Import Config Template button in the pop-up window.
 
 ### Changed behavior:
 - Created a new property set called `protocol_properties.json` where we can
