@@ -222,12 +222,14 @@ routing-instances {
                         passive;
                     }
             {% for vlan, vlan_items in ri.vlans.iteritems() %}
-                {% if vlan_items.is_ospf %}
+                {% if vlan in ns.dev_vlan_list %}
+                    {% if vlan_items.is_ospf %}
                     interface irb.{{ vlan_items.vlan_id }};
-                {% elif vlan_items.irb_gateway4 != '' %}
+                    {% elif vlan_items.irb_gateway4 != '' %}
                     interface irb.{{ vlan_items.vlan_id }} {
                         passive;
                     }
+                    {% endif %}
                 {% endif %}
             {% endfor %}
                 }
@@ -240,12 +242,14 @@ routing-instances {
                         passive;
                     }
             {% for vlan, vlan_items in ri.vlans.iteritems() %}
-                {% if vlan_items.is_ospf %}
+                {% if vlan in ns.dev_vlan_list %}
+                    {% if vlan_items.is_ospf %}
                     interface irb.{{ vlan_items.vlan_id }};
-                {% elif  vlan_items.irb_gateway6 != '' %}
+                    {% elif  vlan_items.irb_gateway6 != '' %}
                     interface irb.{{ vlan_items.vlan_id }} {
                         passive;
                     }
+                    {% endif %}
                 {% endif %}
             {% endfor %}
                 }
