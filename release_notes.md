@@ -3,11 +3,13 @@ Just trying to keep track of changes as they're made.
 
 ## Version 0.6.1
 ### Bug fixes:
-- Missing the virtual-gateway-v4-mac and -v6-mac settings on IRB interfaces
-  where we've configured VGA instead of the anycast gateway.
+- Missing the `virtual-gateway-v4-mac` and `-v6-mac` settings on IRB interfaces
+  where we've configured VGA instead of the anycast gateway.  The settings are
+  there now.
 
 - Also missing the virtual-gateway-accept-data statement on the IRB interfaces
-  where we've comnfigured VGA instead of anycast gw.
+  where we've comnfigured VGA instead of anycast gw.  Setting has been
+  added.
 
 - Fixed the `default-gateway` setting under `[edit routing-instances VSWITCH protocols evpn]`.  This setting was previously `do-not-advertise` but is now
   set correctly to `no-gateway-community`.
