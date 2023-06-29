@@ -53,7 +53,7 @@ routing-instances {
     {% endfor %}
                 }
                 encapsulation vxlan;
-                default-gateway do-not-advertise;
+                default-gateway no-gateway-community;
                 extended-vni-list all;
             }
         }
@@ -143,6 +143,9 @@ routing-instances {
         }
         protocols {
             evpn {
+                irb-symmetric-routing {
+                    vni {{ ri.vrf_vni }};
+                }
                 ip-prefix-routes {
                     advertise direct-nexthop;
                     encapsulation vxlan;
