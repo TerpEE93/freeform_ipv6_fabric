@@ -81,6 +81,31 @@ replace: protocols {
         neighbour-port-info-display port-id;
         interface all;
     }
+{% if 'sflow' in sys_prop and sys_prop.sflow.enabled and 'sflow' in prot_prop %}
+    sflow {
+        polling-interval {{ prot_prop.sflow.polling_interval }};
+    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+        {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+        source-ip inet6 {{ mgt_prefix_v6 }}{{ management_ip }};
+    {% else %}
+        source-ip {{ management_ip }};
+    {% endif %}
+        sample-rate {
+            ingress {{ prot_prop.sflow.ingress_sample_rate }};
+            egress {{ prot_prop.sflow.egress_sample_rate }};
+        }
+    {% for collector in sys_prop.sflow.collectors %}
+        collector {{ collector['host_ip'] }} {
+            udp-port {{ collector['udp_port'] }};
+        }
+    {% endfor %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if iface['role'] == 'external' and iface['if_type'] == 'ethernet' %}
+        interfaces {{ iface['name'] }}.0;
+        {% endif %}
+    {% endfor %}
+    }
+{% endif %}
     rstp {
         bridge-priority 0;
         bpdu-block-on-edge;

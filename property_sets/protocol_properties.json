@@ -12,5 +12,10 @@
         "prefix_pref_lifetime": "86400",
         "prefix_val_lifetime": "604800",
         "rdnss_lifetime": "1800"
+    },
+    "sflow": {
+        "polling_interval": "5",
+        "ingress_sample_rate": "1000",
+        "egress_sample_rate": "1000"
     }
 }

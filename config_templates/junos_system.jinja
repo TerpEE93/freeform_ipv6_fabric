@@ -17,14 +17,15 @@ system {
     {% if 'auth_order' in sys_prop %}
     replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor %}];
     {% endif %}
-    {% if 'dns' in sys_prop %}
+    {% if 'dns' in sys_prop and sys_prop.dns.enabled %}
     replace: name-server {
         {% for server in sys_prop.dns.servers %}
         {{ server }} routing-instance {{ mgt_vrf }};
         {% endfor %}
     }
     {% endif %}
-    {% if 'radius' in sys_prop and 'radius' in sys_prop.auth_order %}
+    {% if 'radius' in sys_prop and sys_prop.radius.enabled and
+          'radius' in sys_prop.auth_order %}
     replace: radius-server {
         {% for dict_item in sys_prop.radius.servers %}
         {{ dict_item['host_ip'] }} {
@@ -39,7 +40,8 @@ system {
         {% endfor %}
     }
     {% endif %}
-    {% if 'tacplus' in sys_prop and 'tacplus' in sys_prop.auth_order %}
+    {% if 'tacplus' in sys_prop and sys_prop.tacplus.enabled and
+          'tacplus' in sys_prop.auth_order %}
     replace: tacplus-server {
         {% for dict_item in sys_prop.tacplus.servers %}
         {{ dict_item['host_ip'] }} {
@@ -95,7 +97,7 @@ system {
         }
     }
     {% endif %}
-    {% if 'ntp' in sys_prop %}
+    {% if 'ntp' in sys_prop and sys_prop.ntp.enabled %}
     replace: ntp {
         {% for server in sys_prop.ntp.servers %}
         server {{ server }};
@@ -107,7 +109,7 @@ system {
         {% endif %}
     }
     {% endif %}
-    {% if 'syslog_common' in sys_prop %}
+    {% if 'syslog_common' in sys_prop and sys_prop.syslog_common.enabled %}
     replace: syslog {
         {% if 'archive' in sys_prop.syslog_common %}
         archive {%- for k, v in sys_prop.syslog_common.archive.items() %} {{ k }} {{ v}} {%- endfor %};

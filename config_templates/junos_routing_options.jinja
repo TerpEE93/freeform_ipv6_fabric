@@ -1,5 +1,8 @@
 {% set dev_router_id = function.get_resource_value(resources, 'router_id', 'fabric_resources', 'devices') %}
 {% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
+{% set prot_prop = property_sets.get('protocol_properties', {} ) %}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
 
 routing-options {
 {% if dev_router_id %}
@@ -17,5 +20,14 @@ routing-options {
             }
         }
     }
+{% if 'sflow' in sys_prop and sys_prop.sflow.enabled and 'sflow' in prot_prop %}
+    rib inet6.0 {
+        static {
+    {% for collector in sys_prop.sflow.collectors %}
+            route {{ collector['host_ip'] }}/128 next-table {{ mgt_vrf }}.inet6.0;
+        }
+    {% endfor %}
+    }
+{% endif %}
 }
 {# EOF #}

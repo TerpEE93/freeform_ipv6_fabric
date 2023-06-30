@@ -1,6 +1,22 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.7.0
+### New features
+- Added support for sflow to an IPv6 target.  The config script will add all
+  interfaces connected to external systems to the list of sampled interfaces.
+  The collector IP and port are set in `custom_sys_properties` while the 
+  polling interval and sample rates are set in `protocol_properties`.  It just
+  kind of made sense to me that way...
+
+### Changed behavior
+- For the services defined in `custom_sys_properties`, I've added an "enabled"
+  flag to check if the service should be included in the rendered config.
+  Doing this means we can keep the configurable items associated with a
+  service in the proprerty set (good for examples when we need them) without
+  automatically enabling the service.
+
+
 ## Version 0.6.1
 ### Bug fixes:
 - Missing the `virtual-gateway-v4-mac` and `-v6-mac` settings on IRB interfaces
