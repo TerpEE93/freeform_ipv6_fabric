@@ -3,6 +3,9 @@
         "bfd_min_int": "1000",
         "bfd_multiplier": "3"
     },
+    "evpn": {
+        "symmetric_irb": false
+    },
     "lldp": {
 
     },

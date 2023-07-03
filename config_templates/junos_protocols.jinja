@@ -75,6 +75,11 @@ replace: protocols {
     {% endfor %}
 {% endif %}
     }
+    l2-learning {
+        telemetry {
+            enable-remote-entries;
+        }
+    }
     lldp {
         port-id-subtype interface-name;
         port-description-type interface-description;

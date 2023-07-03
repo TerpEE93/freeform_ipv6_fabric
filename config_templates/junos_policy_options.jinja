@@ -303,15 +303,15 @@ replace: policy-options {
 {% endfor %}
     community DEFAULT_DIRECT_V4 members [ 3:20007 21001:26000 ];
     community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
-    community FROM_SPINE_EVPN_TIER members 0:14;
-    community FROM_SPINE_FABRIC_TIER members 0:15;
+    community FROM_SPINE_EVPN_TIER members [ 0:14 ];
+    community FROM_SPINE_FABRIC_TIER members [ 0:15 ];
 {% if is_border %}
     community FABRIC_COMMUNITIES members [ 0:12 0:13 0:14 0:15 .+:200.. 2....:260.. 9...:260.. ];
 {% endif %}
 {% for ri in routing_instances %}
     {% if ri.vrf_name and ri.vrf_vni %}
-    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 5:20007 {{ ri.vrf_vni }}:26000 ];
-    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 5:20008 {{ ri.vrf_vni }}:26000 ];
+    community {{ ri.vrf_name }}_COMMUNITY_V4 members [ 3:20007 {{ ri.vrf_vni }}:26000 ];
+    community {{ ri.vrf_name }}_COMMUNITY_V6 members [ 3:20008 {{ ri.vrf_vni }}:26000 ];
         {% if is_border %}
     community RoutesFromExt-{{ ri.vrf_name }}-Default_immutable members [ 5:20009 {{ ri.vrf_vni }}:26000 ];
     community RoutesFromExtV6-{{ ri.vrf_name }}-Default_immutable members [ 5:20010 {{ ri.vrf_vni }}:26000 ];

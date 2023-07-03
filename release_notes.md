@@ -9,12 +9,25 @@ Just trying to keep track of changes as they're made.
   polling interval and sample rates are set in `protocol_properties`.  It just
   kind of made sense to me that way...
 
+- Added support for SNMP v2.  Handles communities and trap groups, and will
+  send all traps via the management VRF.  It will use the IPv6 management
+  address, if configured, otherwise the IPv4 address.
+
 ### Changed behavior
 - For the services defined in `custom_sys_properties`, I've added an "enabled"
   flag to check if the service should be included in the rendered config.
   Doing this means we can keep the configurable items associated with a
   service in the proprerty set (good for examples when we need them) without
   automatically enabling the service.
+
+- Added config to enable gRPC streaming of MAC learning telemetry.  Apstra
+  currently collects the data via polling, but future releases will also
+  support collection via gRPC streaming telemetry.
+
+- Removing support for symmetric Type 2 for now.  The capability is rolling
+  out across platforms in various Junos/Evo releases.  There's a flag in the
+  protocol_properties under evpn where we can enable/disable the capbility
+  going forward.
 
 
 ## Version 0.6.1

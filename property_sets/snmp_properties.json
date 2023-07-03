@@ -1,0 +1,30 @@
+{
+    "enabled": true,
+    "location": "Sector 0:0:1",
+    "contact": "LtCdr Geordi LaForge",
+    "communities": {
+        "rigel": {
+            "authorization": "read-only",
+            "clients": [ 
+                "2601:de2a:aa01:1003::a1",
+                "2601:de2a:aa01:1003::a2"
+            ]
+        },
+        "aldebraan": {
+            "authorization": "read-only",
+            "clients": [ 
+                "2601:de2a:aa01:1003::a3",
+                "2601:de2a:aa01:1003::a4"
+            ]
+        }
+    },
+    "trap_groups": {
+        "vega": {
+            "version": "v2",
+            "targets": [
+                "2601:de2a:aa01:1003::a1",
+                "2601:de2a:aa01:1003::a3"
+            ]
+        }
+    }
+}

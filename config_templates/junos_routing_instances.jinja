@@ -143,9 +143,11 @@ routing-instances {
         }
         protocols {
             evpn {
+        {% if prot_prop.evpn.symmetric_irb %}
                 irb-symmetric-routing {
                     vni {{ ri.vrf_vni }};
                 }
+        {% endif %}
                 ip-prefix-routes {
                     advertise direct-nexthop;
                     encapsulation vxlan;
