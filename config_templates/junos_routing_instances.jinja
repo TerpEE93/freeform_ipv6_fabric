@@ -115,6 +115,29 @@ routing-instances {
         route-distinguisher {{ rd }}:{{ ri.vrf_vni }};
         vrf-target target:{{ ri.vrf_vni }}:1;
         vrf-table-label;
+    {% if ri.dhcp_relay %}
+        forwarding-options {
+            dhcp-relay {
+                forward-only;
+                server-group {
+                    {{ ri.vrf_name}}-SERVERS {
+                        1.1.1.1;
+                    }
+                }
+                group OVERLAY {
+                    active-server-group OVERLAY;
+                    relay-option-82 {
+                        server-id-override;
+                    }
+                    interface irb.1310 {
+                        overrides {
+                            relay-source lo0.2;
+                        }
+                    }
+                }
+            }
+        }
+    {% endif %}
         routing-options {
             router-id {{ dev_router_id|to_ip }};
             multipath;

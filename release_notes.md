@@ -38,6 +38,11 @@ Just trying to keep track of changes as they're made.
   the resource generator to a value of 0 < prefix ≤ 112.  Trinying to use
   anything else risks getting collisions on address assignments.
 
+- Re-wrote the `vrf_vxlan` spreadsheet and the associated parser and json
+  output.  The VRF info is now separate from the VLAN info, and VLANs are now
+  a `member_of` a particular VRF.  This, I hope, will make the spreadsheet
+  somewhat more intuitive and manageable.
+
 
 ## Version 0.6.1
 ### Bug fixes:
