@@ -50,8 +50,8 @@ def gen_vrf_list( vrf_dataframe ):
     is_dhcp6_realy = False
     lo0_unit = ''
     ospf_area = ''
-    vrf_index = ''
     vrf_name = ''
+    vrf_vni = ''
 
     for row in list(range(len( df.index ))):
         s = df.iloc[ row ]
@@ -59,7 +59,7 @@ def gen_vrf_list( vrf_dataframe ):
             vrf_name = s.loc[ 'VRF' ]
             index = int(s.loc[ 'VRF Index' ])
             lo0_unit = index
-            vrf_index = vrf_vni_base + int(index)
+            vrf_vni = vrf_vni_base + int(index)
 
             if pd.notna( s[ 'OSPF Area' ] ):
                 ospf_area = s[ 'OSPF Area' ]
@@ -89,7 +89,7 @@ def gen_vrf_list( vrf_dataframe ):
                     dhcp6_server_list.append( s.loc[ 'DHCPv6 Server 4' ] )
 
         vrf_list_of_dict.append( {
-                            'vrf_name': vrf_name, 'vrf_index': vrf_index,
+                            'vrf_name': vrf_name, 'vrf_vni': vrf_vni,
                             'lo0_unit': lo0_unit, 'ospf_area': ospf_area,
                             'is_dhcp4_relay': is_dhcp4_relay,
                             'is_dhcp6_relay': is_dhcp6_realy,
