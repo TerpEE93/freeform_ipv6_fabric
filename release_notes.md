@@ -7,7 +7,11 @@ Just trying to keep track of changes as they're made.
   interfaces connected to external systems to the list of sampled interfaces.
   The collector IP and port are set in `custom_sys_properties` while the 
   polling interval and sample rates are set in `protocol_properties`.  It just
-  kind of made sense to me that way...
+  kind of made sense to me that way. (NOTE:  Not all Junos platforms currently
+  support communication with an sFlow collector via IPv6 source address, and
+  the QFX5k family is a notable exception.  For this reason, there is a flag
+  named `source_v6_supported` under sFlow in the `protocol_properties`
+  property set to address this.  It is set to false by default.)
 
 - Added support for SNMP v2.  Handles communities and trap groups, and will
   send all traps via the management VRF.  It will use the IPv6 management
