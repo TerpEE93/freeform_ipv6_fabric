@@ -27,19 +27,20 @@
                 {% set mac_address = mac_address|to_mac_format('hyphen')|replace('-', ':') %}
                 {% do esi_lags.lacp_system_ids.update({interface_name: mac_address}) %}
             {% endif %}
-        {% endfor %}
-    {% endfor %}
-{% endfor %}
+        {%- endfor %}
+    {%- endfor %}
+{%- endfor %}
 {% set vlan_list = [] %}
 {% for ri_item in routing_instances %}
     {% for key, value in ri_item.items() %}
         {% if key == 'vlans' %}
             {% for k, v in value.items() %}
                 {{ vlan_list.append(k) or "" }}
-            {% endfor %}
+            {%- endfor %}
         {% endif %}
-    {% endfor %}
-{% endfor %}
+    {%- endfor %}
+{%- endfor %}
+
 interfaces {
 {% for interface_name, iface in interfaces.iteritems() %}
     replace: {{ interface_name }} {
@@ -116,12 +117,17 @@ interfaces {
     {% if 'leaf' in system_tags %}
         {% for ri in routing_instances %}
             {% if ri.lo0_unit %}
+                        {% set host_part = [ '::', ri.lo0_unit, ':1/']|join %}
+                        {% set vrf_lo0_ipv6 = loopback_prefix|replace( '::/', host_part ) %}
+
         unit {{ ri.lo0_unit }} {
-            family inet6;
+            family inet6 {
+                address {{ vrf_lo0_ipv6 }};
+            }
         }
-            {% endif %}
-        {% endfor %}  
-    {% endif %}  
+            {%- endif %}
+        {%- endfor %}  
+    {%- endif %}  
     }
 {% endif %}
 {# And now for the IRB interfaces #}

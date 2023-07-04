@@ -29,6 +29,15 @@ Just trying to keep track of changes as they're made.
   protocol_properties under evpn where we can enable/disable the capbility
   going forward.
 
+- For the purposes of DHCP relay, we need globally unique addresses assigned
+  to the loopback interface in each VRF.  This required a bit of a re-thinking
+  of how we do IP address assignments for lo0 across the board.  So if you
+  want to get relaible addressing on lo0, both for the underlay and in all
+  overlay VRF's, you need a resource generator that will allocate loopback
+  addresses from an IPv6 resource pool, and set the subnet prefix length in
+  the resource generator to a value of 0 < prefix ≤ 112.  Trinying to use
+  anything else risks getting collisions on address assignments.
+
 
 ## Version 0.6.1
 ### Bug fixes:
