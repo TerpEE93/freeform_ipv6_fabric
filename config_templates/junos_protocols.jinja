@@ -81,7 +81,9 @@ replace: protocols {
 {% if 'sflow' in sys_prop and sys_prop.sflow.enabled and 'sflow' in prot_prop %}
     sflow {
         polling-interval {{ prot_prop.sflow.polling_interval }};
-    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' and
+          'source_v6_supported' in prot_prop.sflow and
+          'prot_prop.sflow.source_v6_supported' %}
         {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
         source-ip inet6 {{ mgt_prefix_v6 }}{{ management_ip }};
     {% else %}
