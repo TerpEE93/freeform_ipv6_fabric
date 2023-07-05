@@ -1,69 +1,129 @@
 {
-    "Tenant_A": {
-        "vrf_name": "Tenant_A",
-        "tenant_vni": 9001,
-        "lo0_unit": 1,
-        "vlans": {
-            "vlan_1310": {
-                "vlan_id": 1310,
-                "vxlan_vni": 11310,
-                "ipv4_prefix_len": 26,
-                "irb_gateway4": "10.110.33.1",
-                "irb_gateway4_a": "",
-                "irb_gateway4_b": "",
-                "ipv6_prefix_len": 64,
-                "irb_gateway6": "2601:de2a:aa01:151e::1",
-                "irb_gateway6_a": "",
-                "irb_gateway6_b": ""
-            },
-            "vlan_1315": {
-                "vlan_id": 1315,
-                "vxlan_vni": 11315,
-                "ipv4_prefix_len": "",
-                "irb_gateway4": "",
-                "irb_gateway4_a": "",
-                "irb_gateway4_b": "",
-                "ipv6_prefix_len": 64,
-                "irb_gateway6": "2601:de2a:aa01:1523::1",
-                "irb_gateway6_a": "",
-                "irb_gateway6_b": ""
-            },
-            "vlan_1320": {
-                "vlan_id": 1320,
-                "vxlan_vni": 11320,
-                "ipv4_prefix_len": 26,
-                "irb_gateway4": "10.110.34.1",
-                "irb_gateway4_a": "",
-                "irb_gateway4_b": "",
-                "ipv6_prefix_len": "",
-                "irb_gateway6": "",
-                "irb_gateway6_a": "",
-                "irb_gateway6_b": ""
-            },
-            "vlan_1330": {
-                "vlan_id": 1330,
-                "vxlan_vni": 11330,
-                "ipv4_prefix_len": "",
-                "irb_gateway4": "",
-                "irb_gateway4_a": "",
-                "irb_gateway4_b": "",
-                "ipv6_prefix_len": "",
-                "irb_gateway6": "",
-                "irb_gateway6_a": "",
-                "irb_gateway6_b": ""
-            },
-            "vlan_1390": {
-                "vlan_id": 1390,
-                "vxlan_vni": 11390,
-                "ipv4_prefix_len": 26,
-                "irb_gateway4": "10.110.36.4",
-                "irb_gateway4_a": "10.110.36.2",
-                "irb_gateway4_b": "10.110.36.3",
-                "ipv6_prefix_len": 64,
-                "irb_gateway6": "2601:de2a:aa01:156e::4",
-                "irb_gateway6_a": "2601:de2a:aa01:156e::2",
-                "irb_gateway6_b": "2601:de2a:aa01:156e::3"
-            }
-        }
-    }
-}
+    "vlans": [
+      {
+        "bgp_peer_asn": "",
+        "ipv4_prefix_len": 26,
+        "irb_gateway6": "2601:de2a:aa01:151e::1",
+        "is_static": false,
+        "irb_gateway4_a": "",
+        "is_bgp": false,
+        "irb_gateway4_b": "",
+        "vxlan_vni": 11310,
+        "is_ospf": false,
+        "ipv6_prefix_len": 64,
+        "irb_gateway6_b": "",
+        "member_of": "OVERLAY",
+        "vlan_id": 1310,
+        "peer_ipv6": "",
+        "vlan_name": "vlan_1310",
+        "is_border": false,
+        "peer_ipv4": "",
+        "irb_gateway6_a": "",
+        "irb_gateway4": "10.110.33.1"
+      },
+      {
+        "bgp_peer_asn": "",
+        "ipv4_prefix_len": "",
+        "irb_gateway6": "2601:de2a:aa01:1523::1",
+        "is_static": false,
+        "irb_gateway4_a": "",
+        "is_bgp": false,
+        "irb_gateway4_b": "",
+        "vxlan_vni": 11315,
+        "is_ospf": false,
+        "ipv6_prefix_len": 64,
+        "irb_gateway6_b": "",
+        "member_of": "OVERLAY",
+        "vlan_id": 1315,
+        "peer_ipv6": "",
+        "vlan_name": "vlan_1315",
+        "is_border": false,
+        "peer_ipv4": "",
+        "irb_gateway6_a": "",
+        "irb_gateway4": ""
+      },
+      {
+        "bgp_peer_asn": "",
+        "ipv4_prefix_len": 26,
+        "irb_gateway6": "",
+        "is_static": false,
+        "irb_gateway4_a": "",
+        "is_bgp": false,
+        "irb_gateway4_b": "",
+        "vxlan_vni": 11320,
+        "is_ospf": false,
+        "ipv6_prefix_len": "",
+        "irb_gateway6_b": "",
+        "member_of": "OVERLAY",
+        "vlan_id": 1320,
+        "peer_ipv6": "",
+        "vlan_name": "vlan_1320",
+        "is_border": false,
+        "peer_ipv4": "",
+        "irb_gateway6_a": "",
+        "irb_gateway4": "10.110.34.1"
+      },
+      {
+        "bgp_peer_asn": "",
+        "ipv4_prefix_len": "",
+        "irb_gateway6": "",
+        "is_static": false,
+        "irb_gateway4_a": "",
+        "is_bgp": false,
+        "irb_gateway4_b": "",
+        "vxlan_vni": 11330,
+        "is_ospf": false,
+        "ipv6_prefix_len": "",
+        "irb_gateway6_b": "",
+        "member_of": "OVERLAY",
+        "vlan_id": 1330,
+        "peer_ipv6": "",
+        "vlan_name": "vlan_1330",
+        "is_border": false,
+        "peer_ipv4": "",
+        "irb_gateway6_a": "",
+        "irb_gateway4": ""
+      },
+      {
+        "bgp_peer_asn": 64999,
+        "ipv4_prefix_len": 26,
+        "irb_gateway6": "2601:de2a:aa01:156e::1",
+        "is_static": true,
+        "irb_gateway4_a": "10.110.36.2",
+        "is_bgp": true,
+        "irb_gateway4_b": "10.110.36.3",
+        "vxlan_vni": 11390,
+        "is_ospf": true,
+        "ipv6_prefix_len": 64,
+        "irb_gateway6_b": "2601:de2a:aa01:156e::3",
+        "member_of": "OVERLAY",
+        "vlan_id": 1390,
+        "peer_ipv6": "2601:de2a:aa01:156e::fffe",
+        "vlan_name": "vlan_1390",
+        "is_border": true,
+        "peer_ipv4": "10.110.36.62",
+        "irb_gateway6_a": "2601:de2a:aa01:156e::2",
+        "irb_gateway4": "10.110.36.1"
+      }
+    ],
+    "vrfs": [
+      {
+        "is_dhcp4_relay": true,
+        "lo0_unit": 2,
+        "vrf_vni": 9002,
+        "is_dhcp6_relay": true,
+        "vrf_name": "OVERLAY",
+        "ospf_area": "0.0.0.0",
+        "dhcp6_servers": [
+          "2601:face:beef::aa99:5",
+          "2601:face:beef::aa99:6",
+          "2601:face:beef::aa99:7",
+          "2601:face:beef::aa99:8"
+        ],
+        "dhcp4_servers": [
+          "10.110.99.5",
+          "10.110.99.6"
+        ]
+      }
+    ]
+  }

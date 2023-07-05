@@ -17,6 +17,14 @@ Just trying to keep track of changes as they're made.
   send all traps via the management VRF.  It will use the IPv6 management
   address, if configured, otherwise the IPv4 address.
 
+- Added support for DHCP relay in the overlay routing instance(s).  Each
+  instance can have a maximum of 4 DHCP servers of each v4 and v6.  The
+  `vrf_vlan.xlsx` spreadsheet has been updated to support this.  You get a
+  Yes/No field for each protocol (e.g., DHCPv4 Relay? and DHCPv6 Relay?) in
+  the VRF table, along with fields for up to 4 servers for each protocol.  The
+  `parse_vrf_vlan.py` script has also been updated to generate the necessary
+  property set to handle this.
+
 ### Changed behavior
 - For the services defined in `custom_sys_properties`, I've added an "enabled"
   flag to check if the service should be included in the rendered config.

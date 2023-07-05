@@ -78,14 +78,17 @@ routing-instances {
     {% endif %}
 
     {% for ri in vrf_vlan.vrfs %}
+        {% set ri_loopback = [ 'lo0.', ri['lo0_unit'] ]|join %}
         {% set ns.is_bgp = false %}
         {% set ns.is_ospf = false %}
         {% set ns.is_ospf3 = false %}
         {% set ns.is_static_v4 = false %}
         {% set ns.is_static_v6 = false %}
+        {% set ri_vlan_id_list = [ ] %}
         {% for vlan in vrf_vlan.vlans %}
             {% if vlan['vlan_name'] in ns.dev_vlan_list and 
                   vlan['member_of'] == ri['vrf_name'] %}
+                {{ ri_vlan_id_list.append( vlan['vlan_id'] ) or '' }}
                 {% if vlan['is_bgp'] %}{% set ns.is_bgp = true %}{% endif %}
                 {% if vlan['is_ospf'] and vlan['irb_gateway4'] != '' %}{% set ns.is_ospf = true %}{% endif %}
                 {% if vlan['is_ospf'] and vlan['irb_gateway6'] != '' %}{% set ns.is_ospf3 = true %}{% endif %}
@@ -97,7 +100,7 @@ routing-instances {
     replace: {{ri['vrf_name'] }} {
         instance-type vrf;
         {% if ri['lo0_unit'] %}
-        interface lo0.{{ ri['lo0_unit'] }};
+        interface {{ ri_loopback }};
         {% endif %}
         {% for vlan in vrf_vlan.vlans %}
             {% if vlan['vlan_name'] in ns.dev_vlan_list and 
@@ -110,6 +113,54 @@ routing-instances {
         route-distinguisher {{ rd }}:{{ ri['vrf_vni'] }};
         vrf-target target:{{ ri['vrf_vni'] }}:1;
         vrf-table-label;
+        {% if ri['is_dhcp4_relay'] or ri['is_dhcp6_relay'] %}
+        forwarding-options {
+            dhcp-relay {
+            {% if ri['is_dhcp4_relay'] and ri['dhcp4_servers'] != '' %}
+                forward-only;
+                server-group {{ri['vrf_name']}}-DHCPv4-SERVERS {
+                {% for server in ri['dhcp4_servers'] %}
+                    {{ server }};
+                {% endfor %}
+                }
+                group {{ ri['vrf_name'] }}-RELAYv4 {
+                    active-server-group {{ri['vrf_name']}}-DHCPv4-SERVERS;
+                    relay-option-82 {
+                        server-id-override;
+                    }
+                {% for vlan in ri_vlan_id_list %}
+                    interface irb.{{ vlan }} {
+                        overrides {
+                            relay-source {{ ri_loopback }};
+                        }
+                    }
+                {% endfor %}
+                }
+            {% endif %}
+            {% if ri['is_dhcp6_relay'] and ri['dhcp6_servers'] != '' %}
+                dhcpv6 {
+                    forward-only;
+                    server-group {{ri['vrf_name']}}-DHCPv6-SERVERS {
+                {% for server in ri['dhcp6_servers'] %}
+                        {{ server }};
+                {% endfor %}
+                    }
+                    group {{ ri['vrf_name'] }}-RELAYv6 {
+                        active-server-group {{ri['vrf_name']}}-DHCPv6-SERVERS;
+                {% for vlan in ri_vlan_id_list %}
+                        interface irb.{{ vlan }} {
+                            overrides {
+                                relay-source {{ ri_loopback }};
+                            }
+                        }
+                {% endfor %}
+                    }
+
+                }
+            {% endif %}
+            }
+        }
+        {% endif %}
         routing-options {
             router-id {{ dev_router_id|to_ip }};
             multipath;
@@ -226,7 +277,7 @@ routing-instances {
         {% if ns.is_ospf and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf {
                 area {{ ri['ospf_area'] }} {
-                    interface lo0.{{ ri['lo0_unit'] }} {
+                    interface {{ ri_loopback }} {
                         passive;
                     }
             {% for vlan in vrf_vlan.vlans %}
@@ -247,7 +298,7 @@ routing-instances {
         {% if ns.is_ospf3 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf3 {
                 area {{ ri['ospf_area'] }} {
-                    interface lo0.{{ ri['lo0_unit'] }} {
+                    interface {{ ri_loopback }} {
                         passive;
                     }
             {% for vlan in vrf_vlan.vlans %}
@@ -284,114 +335,4 @@ routing-instances {
     {% endif %}
 }
 
-{# EOF #}
-
-
-
-
-
-
-
-
-
-{# OLD STUFF BELOW...
-
-{% for ri_item in routing_instances %}
-    {% for key, value in ri_item.items() %}
-        {% if key == 'vlans' %}
-            {% for k, v in value.items() %}
-                {{ vlan_list.append(k) or "" }}
-            {% endfor %}
-        {% endif %}
-    {% endfor %}
-{% endfor %}
-
-
-
-
-    {% if ri.dhcp_relay %}
-        forwarding-options {
-            dhcp-relay {
-                forward-only;
-                server-group {
-                    {{ ri.vrf_name}}-SERVERS {
-                        1.1.1.1;
-                    }
-                }
-                group OVERLAY {
-                    active-server-group OVERLAY;
-                    relay-option-82 {
-                        server-id-override;
-                    }
-                    interface irb.1310 {
-                        overrides {
-                            relay-source lo0.2;
-                        }
-                    }
-                }
-            }
-        }
-    {% endif %}
-
-
-        {% if ns.is_ospf and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
-            ospf {
-                area {{ ri.ospf_area }} {
-                    interface lo0.{{ ri.lo0_unit }} {
-                        passive;
-                    }
-            {% for vlan, vlan_items in ri.vlans.iteritems() %}
-                {% if vlan in ns.dev_vlan_list %}
-                    {% if vlan_items.is_ospf %}
-                    interface irb.{{ vlan_items.vlan_id }};
-                    {% elif vlan_items.irb_gateway4 != '' %}
-                    interface irb.{{ vlan_items.vlan_id }} {
-                        passive;
-                    }
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-                }
-            }
-        {% endif %}
-        {% if ns.is_ospf3 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
-            ospf3 {
-                area {{ ri.ospf_area }} {
-                    interface lo0.{{ ri.lo0_unit }} {
-                        passive;
-                    }
-            {% for vlan, vlan_items in ri.vlans.iteritems() %}
-                {% if vlan in ns.dev_vlan_list %}
-                    {% if vlan_items.is_ospf %}
-                    interface irb.{{ vlan_items.vlan_id }};
-                    {% elif  vlan_items.irb_gateway6 != '' %}
-                    interface irb.{{ vlan_items.vlan_id }} {
-                        passive;
-                    }
-                    {% endif %}
-                {% endif %}
-            {% endfor %}
-                }
-            }
-        {% endif %}
-        }
-    }
-{% endfor %}
-{% endif %}
-{# That closes the leaf portion #}
-    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
-    {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
-    {{ mgt_vrf }} {
-        routing-options {
-            rib {{ mgt_vrf }}.inet6.0 {
-                static {
-                    replace: route ::/0 next-hop {{ mgt_prefix_v6 }}1;
-                }
-            }
-        }
-    }
-    {% endif %}
-}
-
-...end old stuff #}
 {# EOF #}
