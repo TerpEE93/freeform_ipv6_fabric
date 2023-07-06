@@ -1,11 +1,12 @@
-{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
+{% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set ns = namespace ( ) %}
 {% set ns.neighbor_asn = None %}
 {% set ns.neighbor_loopback = None %}
-{% set ns.dev_vlan_list = [] %}
-{% set ns.nameserver_list = [] %}
+{% set ns.dev_vlan_list = [ ] %}
+{% set ns.global_vlan_list = [ ] %}
+{% set ns.nameserver_list = [ ] %}
 {% for server in sys_prop.dns.servers %}
     {{ns.nameserver_list.append( server ) or '' }}
 {% endfor %}
@@ -21,18 +22,12 @@
     {% endif %}
 {% endif %}
 {% set local_asn = function.get_resource_value(resources, 'asn_assignments', 'fabric_resources', 'devices') %}
-{% for ri_item in routing_instances %}
-    {% for key, value in ri_item.items() %}
-        {% if key == 'vlans' %}
-            {% for k, v in value.items() %}
-                {{ vlan_list.append(k) or "" }}
-            {% endfor %}
-        {% endif %}
-    {% endfor %}
-{% endfor %}
+{% for vlan in vrf_vlan.vlans %}
+    {{ ns.global_vlan_list.append(vlan['vlan_name']) or "" }}
+{%- endfor %}
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
-        {% for vlan in vlan_list %}
+        {% for vlan in ns.global_vlan_list %}
             {% if vlan in iface.link_tags %}
                 {{ ns.dev_vlan_list.append(vlan) or '' }}
             {% endif %}
@@ -51,29 +46,43 @@ replace: protocols {
     {% endif %}
 {% endfor %}
 {% if ns.dev_vlan_list %}
-    {% for ri in routing_instances %}
-        {% for vlan, vlan_items in ri.vlans.iteritems() %}
-            {% if vlan in ns.dev_vlan_list %}
-                {% if vlan_items.irb_gateway6 %}
-                    {% set irb_prefix = [ vlan_items.irb_gateway6, vlan_items.ipv6_prefix_len ]|join('/')|to_network %}
-        interface irb.{{ vlan_items.vlan_id }} {
+    {% for vlan in vrf_vlan.vlans %}
+        {% if vlan['vlan_name'] in ns.dev_vlan_list and
+              vlan['irb_gateway6'] %}
+            {% set irb_prefix = [ vlan['irb_gateway6'], vlan['ipv6_prefix_len'] ]|join('/')|to_network %}
+        interface irb.{{ vlan['vlan_id'] }} {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
             min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
-                    {% for server in ns.nameserver_list %}
+            {% if 'enabled' in sys_prop.dhcpv6_server and
+                sys_prop.dhcpv6_server.enabled %}
+            managed-configuration;
+            {% else %}
+            no-managed-configuration;
+            {% endif %}
+            {% for server in ns.nameserver_list %}
             dns-server-address {{ server }} {
                 lifetime {{ prot_prop.router_advertisement.rdnss_lifetime }};
             }
-                    {% endfor %}
-            prefix {{ irb_prefix }}/{{ vlan_items.ipv6_prefix_len }} {
+            {% endfor %}
+            prefix {{ irb_prefix }}/{{ vlan['ipv6_prefix_len'] }} {
                 preferred-lifetime {{ prot_prop.router_advertisement.prefix_pref_lifetime }};
                 valid-lifetime {{ prot_prop.router_advertisement.prefix_val_lifetime }};
+            {% if 'is_slaac' in prot_prop.router_advertisement and
+                  prot_prop.router_advertisement.is_slaac %}
+                autonomous;
+            {% else %}
+                no-autonomous;
+            {% endif %}
             }
         }
-                {% endif %}
-            {% endif %}
-        {% endfor %}
+        {% endif %}
     {% endfor %}
 {% endif %}
+    }
+    l2-learning {
+        telemetry {
+            enable-remote-entries;
+        }
     }
     lldp {
         port-id-subtype interface-name;
@@ -81,6 +90,33 @@ replace: protocols {
         neighbour-port-info-display port-id;
         interface all;
     }
+{% if 'sflow' in sys_prop and sys_prop.sflow.enabled and 'sflow' in prot_prop %}
+    sflow {
+        polling-interval {{ prot_prop.sflow.polling_interval }};
+    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' and
+          'source_v6_supported' in prot_prop.sflow and
+          prot_prop.sflow.source_v6_supported %}
+        {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+        source-ip inet6 {{ mgt_prefix_v6 }}{{ management_ip }};
+    {% else %}
+        source-ip {{ management_ip }};
+    {% endif %}
+        sample-rate {
+            ingress {{ prot_prop.sflow.ingress_sample_rate }};
+            egress {{ prot_prop.sflow.egress_sample_rate }};
+        }
+    {% for collector in sys_prop.sflow.collectors %}
+        collector {{ collector['host_ip'] }} {
+            udp-port {{ collector['udp_port'] }};
+        }
+    {% endfor %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if iface['role'] == 'external' and iface['if_type'] == 'ethernet' %}
+        interfaces {{ iface['name'] }}.0;
+        {% endif %}
+    {% endfor %}
+    }
+{% endif %}
     rstp {
         bridge-priority 0;
         bpdu-block-on-edge;
@@ -110,18 +146,18 @@ replace: protocols {
                 multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-{% for interface_name, iface in interfaces.iteritems() %}
-    {% if not iface.get('ipv6_address') %}
-        {% continue %}
-    {% endif %}
-    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if not iface.get('ipv6_address') %}
+            {% continue %}
+        {% endif %}
+        {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+        {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		    {% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
             neighbor {{ neighbor_interface.ipv6_address }} {
                 peer-as {{ ns.neighbor_asn }};
             }
+        {% endfor %}
     {% endfor %}
-{% endfor %}
         }
         group l3clos-l-evpn {
             type external;
@@ -144,25 +180,25 @@ replace: protocols {
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
-{% for interface_name, iface in interfaces.iteritems() %}
-    {% if not iface.get('ipv6_address') %}
-        {% continue %}
-    {% endif %}
-    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
-		{% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
-               or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
-               {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
-            {% else %}
-                {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
-            {% endif %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if not iface.get('ipv6_address') %}
+            {% continue %}
+        {% endif %}
+        {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+        {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		    {% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		    {% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+                {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+                   or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+                    {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
+                {% else %}
+                    {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
+                {% endif %}
             neighbor {{ peer_ipv6 }} {
                 peer-as {{ ns.neighbor_asn }};
             }
+        {% endfor %}
     {% endfor %}
-{% endfor %}
         }
 {% endif %}
 {% if 'spine' in system_tags %}
@@ -180,18 +216,18 @@ replace: protocols {
                 multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-{% for interface_name, iface in interfaces.iteritems() %}
-    {% if not iface.get('ipv6_address') %}
-        {% continue %}
-    {% endif %}
-    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if not iface.get('ipv6_address') %}
+            {% continue %}
+        {% endif %}
+        {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+        {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		    {% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
             neighbor {{ neighbor_interface.ipv6_address }} {
                 peer-as {{ ns.neighbor_asn }};
             }
+        {% endfor %}
     {% endfor %}
-{% endfor %}
         }
         group l3clos-s-evpn {
             type external;
@@ -212,25 +248,25 @@ replace: protocols {
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT )
-{% for interface_name, iface in interfaces.iteritems() %}
-    {% if not iface.get('ipv6_address') %}
-        {% continue %}
-    {% endif %}
-    {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-    {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
-		{% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
-		{% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
-            {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
-               or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
-               {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
-            {% else %}
-                {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
-            {% endif %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if not iface.get('ipv6_address') %}
+            {% continue %}
+        {% endif %}
+        {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+        {% for neighbor_interface in neighbor_interfaces if neighbor_interface.get('ipv6_address') %}
+		    {% set ns.neighbor_asn = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'asn_assignments', 'fabric_resources', 'devices') %}
+		    {% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id), 'loopback_assignments', 'fabric_resources', 'devices') %}
+                {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+                   or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+                    {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
+                {% else %}
+                    {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
+                {% endif %}
             neighbor {{ peer_ipv6 }} {
                 peer-as {{ ns.neighbor_asn }};
             }
+        {% endfor %}
     {% endfor %}
-{% endfor %}
         }
 {% endif %}
     }

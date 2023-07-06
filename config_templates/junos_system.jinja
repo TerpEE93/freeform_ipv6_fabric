@@ -1,4 +1,12 @@
+{#
+    This template includes both the [edit system] and [edit access] containers
+    because, hopefully, the only place we will ever use [edit access] is in
+    the context of a DHCP local server.  In a perfect world, we would use an
+    external DHCP server rather than the switch, but I digress...
+#}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set vrf_vlan = property_sets.get('vrf_vlan', {} ) %}
+
 {% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
 {% set is_mgt_v6 = false %}
 {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
@@ -8,23 +16,54 @@
 {% endif %}
 
 system {
-    {% if hostname %}
+{% if hostname %}
     host-name {{hostname}};
+{% endif %}
+{% if ('enabled' in sys_prop.dhcp4_server and sys_prop.dhcp4_server.enabled) or
+      ('enabled' in sys_prop.dhcp6_server and sys_prop.dhcp6_server.enabled) %}
+    services {
+        replace: dhcp-local-server {
+    {% if 'enabled' in sys_prop.dhcp4_server and
+        sys_prop.dhcp4_server.enabled %}
+            /* Nothing for DHCPv4 yet */
     {% endif %}
+    {% if 'enabled' in sys_prop.dhcp6_server and
+            sys_prop.dhcp6_server.enabled %}
+            dhcpv6 {
+        {% for ri in vrf_vlan.vrfs %}
+            {% if ri['dhcp6_mode'] == 'server' %}
+                group {{ ri['vrf_name'] }}-LOCAL-SERVER {
+                    overrides {
+                        delegated-pool {{ sys_prop.dhcp6_server.pd_pool_name }};
+                    }
+                {% for vlan in vrf_vlan.vlans %}
+                    {% if vlan['member_of'] == ri['vrf_name'] %}
+                    interface irb.{{ vlan['vlan_id'] }};
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+                }
+        {% endfor %}
+            }
+    {% endif %}
+        }
+    }
+{% endif %}
     {% if 'domain_name' in sys_prop %}
     domain-name {{ sys_prop.domain_name }};
     {% endif %}
     {% if 'auth_order' in sys_prop %}
     replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor %}];
     {% endif %}
-    {% if 'dns' in sys_prop %}
+    {% if 'dns' in sys_prop and sys_prop.dns.enabled %}
     replace: name-server {
         {% for server in sys_prop.dns.servers %}
         {{ server }} routing-instance {{ mgt_vrf }};
         {% endfor %}
     }
     {% endif %}
-    {% if 'radius' in sys_prop and 'radius' in sys_prop.auth_order %}
+    {% if 'radius' in sys_prop and sys_prop.radius.enabled and
+          'radius' in sys_prop.auth_order %}
     replace: radius-server {
         {% for dict_item in sys_prop.radius.servers %}
         {{ dict_item['host_ip'] }} {
@@ -39,7 +78,8 @@ system {
         {% endfor %}
     }
     {% endif %}
-    {% if 'tacplus' in sys_prop and 'tacplus' in sys_prop.auth_order %}
+    {% if 'tacplus' in sys_prop and sys_prop.tacplus.enabled and
+          'tacplus' in sys_prop.auth_order %}
     replace: tacplus-server {
         {% for dict_item in sys_prop.tacplus.servers %}
         {{ dict_item['host_ip'] }} {
@@ -95,7 +135,7 @@ system {
         }
     }
     {% endif %}
-    {% if 'ntp' in sys_prop %}
+    {% if 'ntp' in sys_prop and sys_prop.ntp.enabled %}
     replace: ntp {
         {% for server in sys_prop.ntp.servers %}
         server {{ server }};
@@ -107,7 +147,7 @@ system {
         {% endif %}
     }
     {% endif %}
-    {% if 'syslog_common' in sys_prop %}
+    {% if 'syslog_common' in sys_prop and sys_prop.syslog_common.enabled %}
     replace: syslog {
         {% if 'archive' in sys_prop.syslog_common %}
         archive {%- for k, v in sys_prop.syslog_common.archive.items() %} {{ k }} {{ v}} {%- endfor %};
@@ -140,4 +180,33 @@ system {
     }
     {% endif %}
 }
+{# End of [edit system] container #}
+
+{# Start of [edit access] container #}
+{% if ('enabled' in sys_prop.dhcp4_server and sys_prop.dhcp4_server.enabled) or
+      ('enabled' in sys_prop.dhcp6_server and sys_prop.dhcp6_server.enabled) %}
+access {
+    address-assignment {
+    {% if 'enabled' in sys_prop.dhcp6_server and
+        sys_prop.dhcp6_server.enabled %}
+        pool {{ sys_prop.dhcp6_server.pd_pool_name }} {
+            family inet6 {
+                prefix {{ sys_prop.dhcp6_server.pd_pool_prefix }};
+                range PD-PREFIX prefix-length 64;
+                dhcp-attributes {
+        {% if 'dns' in sys_prop and sys_prop.dns.enabled %}
+                    dns-server {
+            {% for server in sys_prop.dns.servers %}
+                        {{ server }};
+            {% endfor %}
+                    }
+        {% endif %}
+                }
+            }
+        }
+    {% endif %}
+    }
+}
+{% endif %}
+{# End of [edit access] container #}
 {# EOF #}

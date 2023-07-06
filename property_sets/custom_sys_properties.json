@@ -4,31 +4,44 @@
     "accounting_dest": "radius",
     "mgt_vrf": "mgmt_junos",
     "mgt_prefix_v6": "2601:de2a:aa01:1003::/64",
-    "ntp": {
-        "servers": [
-            "2601:de2a:aa01:1003::31",
-            "2601:de2a:aa01:1003::32"
-        ]
+    "dhcp4_server": {
+        "enabled": false
+    },
+    "dhcp6_server": {
+        "enabled": true,
+        "is_prefix_delegation": true,
+        "pd_pool_name": "PD_POOL",
+        "pd_pool_prefix": "2601:de2a:aa01:1000::/52"
     },
     "dns": {
+        "enabled": true,
         "servers": [
             "2601:de2a:aa01:1003::8",
             "2601:de2a:aa01:1003::9"
         ]
     },
+    "ntp": {
+        "enabled": true,
+        "servers": [
+            "2601:de2a:aa01:1003::31",
+            "2601:de2a:aa01:1003::32"
+        ]
+    },
     "radius": {
+        "enabled": true,
         "servers": [
             { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "1812", "timeout": "5" },
             { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "1812", "timeout": "5" }
         ]
     },
-    "tacplus": {
-        "servers": [
-            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "49", "timeout": "5" },
-            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "49", "timeout": "5" }
+    "sflow": {
+        "enabled": true,
+        "collectors": [
+            { "host_ip": "2601:de2a:aa01:1003::71", "udp_port": "6343"}
         ]
     },
     "syslog_common": {
+        "enabled": true,
         "archive": { "files": 10, "size": "1m" },
         "time_format": [ "millisecond", "year" ]
     },
@@ -57,6 +70,13 @@
         "interactive-commands": [
             { "facility": "any", "priority": "none" },
             { "facility": "interactive-commands", "priority": "info" }
+        ]
+    },
+    "tacplus": {
+        "enabled": true,
+        "servers": [
+            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "49", "timeout": "5" },
+            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "49", "timeout": "5" }
         ]
     }
 }

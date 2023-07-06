@@ -1,6 +1,65 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.7.0
+### New features
+- Added support for sflow to an IPv6 target.  The config script will add all
+  interfaces connected to external systems to the list of sampled interfaces.
+  The collector IP and port are set in `custom_sys_properties` while the 
+  polling interval and sample rates are set in `protocol_properties`.  It just
+  kind of made sense to me that way. (NOTE:  Not all Junos platforms currently
+  support communication with an sFlow collector via IPv6 source address, and
+  the QFX5k family is a notable exception.  For this reason, there is a flag
+  named `source_v6_supported` under sFlow in the `protocol_properties`
+  property set to address this.  It is set to false by default.)
+
+- Added support for SNMP v2.  Handles communities and trap groups, and will
+  send all traps via the management VRF.  It will use the IPv6 management
+  address, if configured, otherwise the IPv4 address.
+
+- Added support for DHCP relay in the overlay routing instance(s).  Each
+  instance can have a maximum of 4 DHCP servers of each v4 and v6.  The
+  `vrf_vlan.xlsx` spreadsheet has been updated to support this.  You get a
+  Yes/No field for each protocol (e.g., DHCPv4 Relay? and DHCPv6 Relay?) in
+  the VRF table, along with fields for up to 4 servers for each protocol.  The
+  `parse_vrf_vlan.py` script has also been updated to generate the necessary
+  property set to handle this.
+
+- Added basic support for DHCP local server.  This is just for functional
+  testing only.  You don't really want to run a DHCP server on your data
+  center switch, do you?  There's so much real compute everywhere you look...
+
+### Changed behavior
+- For the services defined in `custom_sys_properties`, I've added an "enabled"
+  flag to check if the service should be included in the rendered config.
+  Doing this means we can keep the configurable items associated with a
+  service in the proprerty set (good for examples when we need them) without
+  automatically enabling the service.
+
+- Added config to enable gRPC streaming of MAC learning telemetry.  Apstra
+  currently collects the data via polling, but future releases will also
+  support collection via gRPC streaming telemetry.
+
+- Removing support for symmetric Type 2 for now.  The capability is rolling
+  out across platforms in various Junos/Evo releases.  There's a flag in the
+  protocol_properties under evpn where we can enable/disable the capbility
+  going forward.
+
+- For the purposes of DHCP relay, we need globally unique addresses assigned
+  to the loopback interface in each VRF.  This required a bit of a re-thinking
+  of how we do IP address assignments for lo0 across the board.  So if you
+  want to get relaible addressing on lo0, both for the underlay and in all
+  overlay VRF's, you need a resource generator that will allocate loopback
+  addresses from an IPv6 resource pool, and set the subnet prefix length in
+  the resource generator to a value of 0 < prefix ≤ 112.  Trinying to use
+  anything else risks getting collisions on address assignments.
+
+- Re-wrote the `vrf_vxlan` spreadsheet and the associated parser and json
+  output.  The VRF info is now separate from the VLAN info, and VLANs are now
+  a `member_of` a particular VRF.  This, I hope, will make the spreadsheet
+  somewhat more intuitive and manageable.
+
+
 ## Version 0.6.1
 ### Bug fixes:
 - Missing the `virtual-gateway-v4-mac` and `-v6-mac` settings on IRB interfaces

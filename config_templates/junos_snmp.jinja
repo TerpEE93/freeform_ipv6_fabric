@@ -1,0 +1,54 @@
+{% set snmp_prop = property_sets.get('snmp_properties', {} ) %}
+{% if 'enabled' in snmp_prop and snmp_prop.enabled %}
+    {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+    {% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
+    {% set is_mgt_v6 = false %}
+    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
+        {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
+        {% set management_ipv6 = [ mgt_prefix_v6, management_ip ]|join %}
+        {% set is_mgt_v6 = true%}
+    {% endif %}
+
+snmp {
+    name {{ hostname }};
+    contact "{{ snmp_prop.contact }}";
+    filter-duplicates;
+    {% for k, v in snmp_prop.communities.items() %}
+    community {{ k }} {
+        authorization {{ v['authorization'] }};
+            {% if 'clients' in v and v['clients'] != '' %}
+        clients {
+                {% for client in v['clients'] %}
+            {{ client }};
+                {% endfor %}
+        }
+            {% endif%}
+    }
+    {% endfor %}
+    trap-options {
+        routing-instance {{ mgt_vrf }} {
+    {% if is_mgt_v6 %}
+            source-address {{ management_ipv6 }};
+    {% else %}
+            source-address {{ management_ip }};
+    {% endif %}
+        }
+    }
+    {% if 'trap_groups' in snmp_prop and snmp_prop.trap_groups != '' %}
+        {% for k, v in snmp_prop.trap_groups.items() %}
+    trap-group {{ k }} {
+        routing-instance {{ mgt_vrf }};
+        version {{ v['version'] }};
+            {% if 'targets' in v and v['targets'] != '' %}
+        targets {
+                {% for target in v['targets'] %}
+            {{ target }};
+                {% endfor %}
+        }
+            {% endif %}
+    }
+        {% endfor %}
+    {% endif %}
+}
+{% endif %}
+{# EOF #}

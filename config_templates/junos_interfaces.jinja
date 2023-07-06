@@ -11,8 +11,7 @@
     {% endif %}
 {% endif %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
-{% set routing_instances = property_sets.get('vrf_vlan', {}).itervalues()|list %}
-{% set ns = namespace(dev_vlan_list = []) %}
+{% set vrf_vlan = property_sets.get('vrf_vlan', {} ) %}
 {% for interface_name, intf_resources in interface_resources.iteritems() %}
     {% for resource in intf_resources if resource['label'] == 'lacp' %}
         {% for r in resource['resources'] %}
@@ -27,19 +26,16 @@
                 {% set mac_address = mac_address|to_mac_format('hyphen')|replace('-', ':') %}
                 {% do esi_lags.lacp_system_ids.update({interface_name: mac_address}) %}
             {% endif %}
-        {% endfor %}
-    {% endfor %}
-{% endfor %}
-{% set vlan_list = [] %}
-{% for ri_item in routing_instances %}
-    {% for key, value in ri_item.items() %}
-        {% if key == 'vlans' %}
-            {% for k, v in value.items() %}
-                {{ vlan_list.append(k) or "" }}
-            {% endfor %}
-        {% endif %}
-    {% endfor %}
-{% endfor %}
+        {%- endfor %}
+    {%- endfor %}
+{%- endfor %}
+{% set ns = namespace( ) %}
+{% set ns.dev_vlan_list = [ ] %}
+{% set ns.global_vlan_list = [ ] %}
+{% for vlan in vrf_vlan.vlans %}
+        {{ ns.global_vlan_list.append(vlan['vlan_name']) or "" }}
+{%- endfor %}
+
 interfaces {
 {% for interface_name, iface in interfaces.iteritems() %}
     replace: {{ interface_name }} {
@@ -84,10 +80,10 @@ interfaces {
     {% elif 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         {% set intf_mode = 'trunk' if 'mode_trunk' in iface.link_tags else 'access' %}
         {% set intf_vlan_list = [] %}
-        {% for vlan in vlan_list %}
+        {% for vlan in ns.global_vlan_list %}
             {% if vlan in iface.link_tags %}
-                {{ intf_vlan_list.append(vlan) or "" }}{{ ns.dev_vlan_list.append(vlan) or "" }}
-            {% endif %}
+                {{ ns.dev_vlan_list.append(vlan) or "" }}{{ intf_vlan_list.append(vlan) or "" }}
+            {%- endif %}
         {% endfor%}
         mtu {{ intf_prop.host_intf_mtu }};
         unit 0 {
@@ -114,64 +110,68 @@ interfaces {
             }
         }
     {% if 'leaf' in system_tags %}
-        {% for ri in routing_instances %}
-            {% if ri.lo0_unit %}
-        unit {{ ri.lo0_unit }} {
-            family inet6;
+        {% for ri in vrf_vlan.vrfs %}
+            {% if ri['lo0_unit'] %}
+                        {% set host_part = [ '::', ri['lo0_unit'], ':1/']|join %}
+                        {% set vrf_lo0_ipv6 = loopback_prefix|replace( '::/', host_part ) %}
+
+        unit {{ ri['lo0_unit'] }} {
+            family inet6 {
+                address {{ vrf_lo0_ipv6 }};
+            }
         }
-            {% endif %}
-        {% endfor %}  
-    {% endif %}  
+            {%- endif %}
+        {%- endfor %}  
+    {%- endif %}  
     }
 {% endif %}
 {# And now for the IRB interfaces #}
 {% if 'leaf' in system_tags %}
-    {% for ri in routing_instances %}
+    {% for vlan in vrf_vlan.vlans %}
         {% if loop.first %}
     replace: irb {
         {% endif %}
-    {% for vlan, vlan_items in ri.vlans.iteritems() %}
-        {% if vlan in ns.dev_vlan_list %}
-            {% if vlan_items.irb_gateway4 or vlan_items.irb_gateway6 %}
-        unit {{ vlan_items.vlan_id }} {
-        {# If the below test is true, we're using anycast addresses #}
-                {% if not ( vlan_items.irb_gateway4_a or
-                            vlan_items.irb_gateway4_b or
-                            vlan_items.irb_gateway6_a or
-                            vlan_items.irb_gateway6_b ) %}
-                    {% if vlan_items.irb_gateway4 %}
+        {% if vlan['vlan_name'] in ns.dev_vlan_list %}
+            {% if vlan['irb_gateway4'] or vlan['irb_gateway6'] %}
+        unit {{ vlan['vlan_id'] }} {
+                {# If the below test is true, we're using anycast addresses #}
+                {% if not ( vlan['irb_gateway4_a'] or
+                            vlan['irb_gateway4_b'] or
+                            vlan['irb_gateway6_a'] or
+                            vlan['irb_gateway6_b'] ) %}
+                    {% if vlan['irb_gateway4'] %}
             mac 00:1c:73:00:00:01;
             family inet {
                 mtu {{ intf_prop.irb_intf_mtu }};
-                address {{ vlan_items.irb_gateway4 }}/{{ vlan_items.ipv4_prefix_len }};
+                address {{ vlan['irb_gateway4'] }}/{{ vlan['ipv4_prefix_len'] }};
             }
                     {% endif %}
-                    {% if vlan_items.irb_gateway6 %}
+                    {% if vlan['irb_gateway6'] %}
             family inet6 {
                 mtu {{ intf_prop.irb_intf_mtu }};
-                address {{ vlan_items.irb_gateway6 }}/{{ vlan_items.ipv6_prefix_len }};
+                address {{ vlan['irb_gateway6'] }}/{{ vlan['ipv6_prefix_len'] }};
             }
                     {% endif %}
-        {# Otherwise we're using VGA #}
+                {# Otherwise we're using VGA #}
                 {% else %}
             virtual-gateway-accept-data;
-                    {% if vlan_items.irb_gateway4 %}
+                    {% if vlan['irb_gateway4'] %}
             virtual-gateway-v4-mac 00:1c:73:00:00:01;
             family inet {
                 mtu {{ intf_prop.irb_intf_mtu }};
-                {% set  gateway4 = vlan_items.irb_gateway4_a if 'gateway_A' in system_tags else vlan_items.irb_gateway4_b %}
-                address {{ gateway4}}/{{vlan_items.ipv4_prefix_len}} {
-                    virtual-gateway-address {{ vlan_items.irb_gateway4 }}
+                {% set  gateway4 = vlan['irb_gateway4_a'] if 'gateway_A' in system_tags else vlan['irb_gateway4_b'] %}
+                address {{ gateway4 }}/{{ vlan['ipv4_prefix_len'] }} {
+                    virtual-gateway-address {{ vlan['irb_gateway4'] }}
                 }
             }
                     {% endif %}
-                    {% if vlan_items.irb_gateway6 %}
+                    {% if vlan['irb_gateway6'] %}
             virtual-gateway-v6-mac 00:1c:73:00:00:01;
             family inet6 {
                 mtu {{ intf_prop.irb_intf_mtu }};
-                {% set  gateway6 = vlan_items.irb_gateway6_a if 'gateway_A' in system_tags else vlan_items.irb_gateway6_b %}
-                address {{ gateway6}}/{{vlan_items.ipv6_prefix_len}} {
-                    virtual-gateway-address {{ vlan_items.irb_gateway6 }}
+                {% set  gateway6 = vlan['irb_gateway6_a'] if 'gateway_A' in system_tags else vlan['irb_gateway6_b'] %}
+                address {{ gateway6 }}/{{ vlan['ipv6_prefix_len'] }} {
+                    virtual-gateway-address {{ vlan['irb_gateway6'] }}
                 }
             }
                     {% endif %}
@@ -179,7 +179,6 @@ interfaces {
         }
             {% endif %}
         {% endif %}
-    {% endfor %}
         {% if loop.last %}
     }
         {% endif %}

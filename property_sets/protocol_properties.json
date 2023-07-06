@@ -3,14 +3,24 @@
         "bfd_min_int": "1000",
         "bfd_multiplier": "3"
     },
+    "evpn": {
+        "symmetric_irb": false
+    },
     "lldp": {
 
     },
     "router_advertisement": {
+        "is_slaac": true,
         "max_adv_int": "30",
         "min_adv_int": "10",
         "prefix_pref_lifetime": "86400",
         "prefix_val_lifetime": "604800",
         "rdnss_lifetime": "1800"
+    },
+    "sflow": {
+        "source_v6_supported": false,
+        "polling_interval": "5",
+        "ingress_sample_rate": "1000",
+        "egress_sample_rate": "1000"
     }
 }
