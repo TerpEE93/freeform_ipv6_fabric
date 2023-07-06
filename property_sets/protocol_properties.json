@@ -10,6 +10,7 @@
 
     },
     "router_advertisement": {
+        "is_slaac": true,
         "max_adv_int": "30",
         "min_adv_int": "10",
         "prefix_pref_lifetime": "86400",

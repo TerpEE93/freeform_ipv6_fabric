@@ -53,14 +53,26 @@ replace: protocols {
         interface irb.{{ vlan['vlan_id'] }} {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
             min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
-                    {% for server in ns.nameserver_list %}
+            {% if 'enabled' in sys_prop.dhcpv6_server and
+                sys_prop.dhcpv6_server.enabled %}
+            managed-configuration;
+            {% else %}
+            no-managed-configuration;
+            {% endif %}
+            {% for server in ns.nameserver_list %}
             dns-server-address {{ server }} {
                 lifetime {{ prot_prop.router_advertisement.rdnss_lifetime }};
             }
-                    {% endfor %}
+            {% endfor %}
             prefix {{ irb_prefix }}/{{ vlan['ipv6_prefix_len'] }} {
                 preferred-lifetime {{ prot_prop.router_advertisement.prefix_pref_lifetime }};
                 valid-lifetime {{ prot_prop.router_advertisement.prefix_val_lifetime }};
+            {% if 'is_slaac' in prot_prop.router_advertisement and
+                  prot_prop.router_advertisement.is_slaac %}
+                autonomous;
+            {% else %}
+                no-autonomous;
+            {% endif %}
             }
         }
         {% endif %}

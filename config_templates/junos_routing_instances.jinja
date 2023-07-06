@@ -113,10 +113,10 @@ routing-instances {
         route-distinguisher {{ rd }}:{{ ri['vrf_vni'] }};
         vrf-target target:{{ ri['vrf_vni'] }}:1;
         vrf-table-label;
-        {% if ri['is_dhcp4_relay'] or ri['is_dhcp6_relay'] %}
+        {% if ri['dhcp4_mode'] == 'relay' or ri['dhcp6_mode'] == 'relay' %}
         forwarding-options {
             dhcp-relay {
-            {% if ri['is_dhcp4_relay'] and ri['dhcp4_servers'] != '' %}
+            {% if ri['dhcp4_mode'] == 'relay' and ri['dhcp4_servers'] != '' %}
                 forward-only;
                 server-group {{ri['vrf_name']}}-DHCPv4-SERVERS {
                 {% for server in ri['dhcp4_servers'] %}
@@ -137,7 +137,7 @@ routing-instances {
                 {% endfor %}
                 }
             {% endif %}
-            {% if ri['is_dhcp6_relay'] and ri['dhcp6_servers'] != '' %}
+            {% if ri['dhcp6_mode'] == 'relay' and ri['dhcp6_servers'] != '' %}
                 dhcpv6 {
                     forward-only;
                     server-group {{ri['vrf_name']}}-DHCPv6-SERVERS {

@@ -46,8 +46,8 @@ def gen_vrf_list( vrf_dataframe ):
     dhcp6_server_list = [ ]
     vrf_list_of_dict = [ ]
     index = ''
-    is_dhcp4_relay = False
-    is_dhcp6_realy = False
+    dhcp4_mode = 'none'
+    dhcp6_mode = 'none'
     lo0_unit = ''
     ospf_area = ''
     vrf_name = ''
@@ -66,8 +66,8 @@ def gen_vrf_list( vrf_dataframe ):
             else:
                 ospf_area = ''
             
-            if s.loc[ 'DHCPv4 Relay?' ] == 'Yes':
-                is_dhcp4_relay = True
+            if s.loc[ 'DHCPv4 Mode' ] == 'Relay':
+                dhcp4_mode = 'relay'
                 if pd.notna( s.loc[ 'DHCPv4 Server 1' ] ):
                     dhcp4_server_list.append( s.loc[ 'DHCPv4 Server 1' ] )
                 if pd.notna( s.loc[ 'DHCPv4 Server 2' ] ):
@@ -76,9 +76,13 @@ def gen_vrf_list( vrf_dataframe ):
                     dhcp4_server_list.append( s.loc[ 'DHCPv4 Server 3' ] )
                 if pd.notna( s.loc[ 'DHCPv4 Server 4' ] ):
                     dhcp4_server_list.append( s.loc[ 'DHCPv4 Server 4' ] )
+            elif s.loc[ 'DHCPv4 Mode' ] == 'Server':
+                dhcp4_mode = 'server'
+            else:
+                dhcp4_mode = 'none'
 
-            if s.loc[ 'DHCPv6 Relay?' ] == 'Yes':
-                is_dhcp6_realy = True
+            if s.loc[ 'DHCPv6 Mode' ] == 'Relay':
+                dhcp6_mode = 'relay'
                 if pd.notna( s.loc[ 'DHCPv6 Server 1' ] ):
                     dhcp6_server_list.append( s.loc[ 'DHCPv6 Server 1' ] )
                 if pd.notna( s.loc[ 'DHCPv6 Server 2' ] ):
@@ -87,12 +91,16 @@ def gen_vrf_list( vrf_dataframe ):
                     dhcp6_server_list.append( s.loc[ 'DHCPv6 Server 3' ] )
                 if pd.notna( s.loc[ 'DHCPv6 Server 4' ] ):
                     dhcp6_server_list.append( s.loc[ 'DHCPv6 Server 4' ] )
+            elif s.loc[ 'DHCPv6 Mode' ] == 'Server':
+                dhcp6_mode = 'server'
+            else:
+                dhcp6_mode = 'none'
 
         vrf_list_of_dict.append( {
                             'vrf_name': vrf_name, 'vrf_vni': vrf_vni,
                             'lo0_unit': lo0_unit, 'ospf_area': ospf_area,
-                            'is_dhcp4_relay': is_dhcp4_relay,
-                            'is_dhcp6_relay': is_dhcp6_realy,
+                            'dhcp4_mode': dhcp4_mode,
+                            'dhcp6_mode': dhcp6_mode,
                             'dhcp4_servers': dhcp4_server_list,
                             'dhcp6_servers': dhcp6_server_list
                           } )

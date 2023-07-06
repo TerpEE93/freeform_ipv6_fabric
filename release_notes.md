@@ -25,6 +25,10 @@ Just trying to keep track of changes as they're made.
   `parse_vrf_vlan.py` script has also been updated to generate the necessary
   property set to handle this.
 
+- Added basic support for DHCP local server.  This is just for functional
+  testing only.  You don't really want to run a DHCP server on your data
+  center switch, do you?  There's so much real compute everywhere you look...
+
 ### Changed behavior
 - For the services defined in `custom_sys_properties`, I've added an "enabled"
   flag to check if the service should be included in the rendered config.
