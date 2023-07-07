@@ -53,8 +53,8 @@ replace: protocols {
         interface irb.{{ vlan['vlan_id'] }} {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
             min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
-            {% if 'enabled' in sys_prop.dhcpv6_server and
-                sys_prop.dhcpv6_server.enabled %}
+            {% if 'enabled' in sys_prop.dhcp6_server and
+                sys_prop.dhcp6_server.enabled %}
             managed-configuration;
             {% else %}
             no-managed-configuration;
@@ -90,7 +90,7 @@ replace: protocols {
         neighbour-port-info-display port-id;
         interface all;
     }
-{% if 'sflow' in sys_prop and sys_prop.sflow.enabled and 'sflow' in prot_prop %}
+{% if 'sflow' in prot_prop and prot_prop.sflow.enabled %}
     sflow {
         polling-interval {{ prot_prop.sflow.polling_interval }};
     {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' and
@@ -105,11 +105,22 @@ replace: protocols {
             ingress {{ prot_prop.sflow.ingress_sample_rate }};
             egress {{ prot_prop.sflow.egress_sample_rate }};
         }
-    {% for collector in sys_prop.sflow.collectors %}
+    {% if 'collector4' in prot_prop.sflow and prot_prop.sflow.collector4 != '' %}
+        {% for collector in prot_prop.sflow.collector4 %}
         collector {{ collector['host_ip'] }} {
             udp-port {{ collector['udp_port'] }};
         }
-    {% endfor %}
+        {% endfor %}
+    {% endif %}
+    {% if 'collector6' in prot_prop.sflow and
+            prot_prop.sflow.collector6 != '' and
+            prot_prop.sflow.source_v6_supported %}
+        {% for collector in prot_prop.sflow.collector6 %}
+        collector {{ collector['host_ip'] }} {
+            udp-port {{ collector['udp_port'] }};
+        }
+        {% endfor %}
+    {% endif %}
     {% for interface_name, iface in interfaces.iteritems() %}
         {% if iface['role'] == 'external' and iface['if_type'] == 'ethernet' %}
         interfaces {{ iface['name'] }}.0;

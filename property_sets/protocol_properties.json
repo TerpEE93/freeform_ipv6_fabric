@@ -18,9 +18,17 @@
         "rdnss_lifetime": "1800"
     },
     "sflow": {
+        "enabled": true,
         "source_v6_supported": false,
         "polling_interval": "5",
         "ingress_sample_rate": "1000",
-        "egress_sample_rate": "1000"
+        "egress_sample_rate": "1000",
+        "collector4": [
+            { "host_ip": "172.31.255.45", "udp_port": "6343" }
+        ],
+        "collector6": [
+            { "host_ip": "2601:de2a:aa01:1003::71", "udp_port": "6343"}
+
+        ]
     }
 }

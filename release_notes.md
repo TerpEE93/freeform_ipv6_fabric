@@ -1,6 +1,25 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.8.0
+### New features
+- new
+
+### Changed behavior
+- Moved all of the sFlow stuff out of `custom_sys_properties` and put it all
+  in `protocol_properties` instead.  I've seen the error of my ways...
+
+### Bug fixes
+- Cleaning up the "some platforms don't support sFlow to IPv6 collectors"
+  issue.  The `junos_protocols.jinja` template will henceforth not render any
+  IPv6-related config if `sflow.source_v6_supported` is false.
+
+- We were performing the checks for DHCP server/relay/none incorrectly, and
+  an inconsistent setting across property sets (e.g., `dhcp6_server: enabled` 
+  in `custom_sys_properties` and `dhcp6_mode: relay|none` in `vrf_vlan` would
+  lead to some vestigal DHCP config in `[edit system services dhcp-local-server]`)
+  that broke the commit.  This is fixed now.
+
 ## Version 0.7.0
 ### New features
 - Added support for sflow to an IPv6 target.  The config script will add all

@@ -14,6 +14,10 @@
     {% set management_ipv6 = [ mgt_prefix_v6, management_ip ]|join %}
     {% set is_mgt_v6 = true%}
 {% endif %}
+{% set ns = namespace() %}
+{% set ns.dev_vlan_list = [ ] %}
+{% set ns.vrf_with_dhcp4_server = [ ] %}
+{% set ns.vrf_with_dhcp6_server = [ ] %}
 
 system {
 {% if hostname %}
@@ -21,33 +25,51 @@ system {
 {% endif %}
 {% if ('enabled' in sys_prop.dhcp4_server and sys_prop.dhcp4_server.enabled) or
       ('enabled' in sys_prop.dhcp6_server and sys_prop.dhcp6_server.enabled) %}
+    {% for vrf in vrf_vlan.vrfs %}
+        {% if vrf['dhcp4_mode'] == 'server' -%}
+            {{ ns.vrf_with_dhcp4_server.append(vrf['vrf_name']) or '' }}
+        {%- endif %}
+        {% if vrf['dhcp6_mode'] == 'server' -%}
+            {{ ns.vrf_with_dhcp6_server.append(vrf['vrf_name']) or '' }}
+        {%- endif %}
+    {% endfor %}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan['vlan_name'] in iface.link_tags -%}
+                    {{ ns.dev_vlan_list.append(vlan['vlan_name']) or "" }}
+                {%- endif %}
+            {%- endfor%}
+        {% endif %}
+    {% endfor %}
+    {% if ns.vrf_with_dhcp4_server !=[ ] or ns.vrf_with_dhcp6_server != [ ] %}
     services {
         replace: dhcp-local-server {
-    {% if 'enabled' in sys_prop.dhcp4_server and
+        {% if 'enabled' in sys_prop.dhcp4_server and
         sys_prop.dhcp4_server.enabled %}
             /* Nothing for DHCPv4 yet */
-    {% endif %}
-    {% if 'enabled' in sys_prop.dhcp6_server and
+        {% endif %}
+        {% if 'enabled' in sys_prop.dhcp6_server and
             sys_prop.dhcp6_server.enabled %}
             dhcpv6 {
-        {% for ri in vrf_vlan.vrfs %}
-            {% if ri['dhcp6_mode'] == 'server' %}
-                group {{ ri['vrf_name'] }}-LOCAL-SERVER {
+            {% for vrf in ns.vrf_with_dhcp6_server %}
+                group {{ vrf }}-LOCAL-SERVER {
                     overrides {
                         delegated-pool {{ sys_prop.dhcp6_server.pd_pool_name }};
                     }
                 {% for vlan in vrf_vlan.vlans %}
-                    {% if vlan['member_of'] == ri['vrf_name'] %}
+                    {% if vlan['member_of'] == vrf and 
+                        vlan['vlan_name'] in ns.dev_vlan_list %}
                     interface irb.{{ vlan['vlan_id'] }};
                     {% endif %}
                 {% endfor %}
-            {% endif %}
                 }
-        {% endfor %}
+            {% endfor %}
             }
-    {% endif %}
+        {% endif %}
         }
     }
+    {% endif %}
 {% endif %}
     {% if 'domain_name' in sys_prop %}
     domain-name {{ sys_prop.domain_name }};

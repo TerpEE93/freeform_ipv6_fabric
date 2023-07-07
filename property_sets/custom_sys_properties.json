@@ -4,6 +4,11 @@
     "accounting_dest": "radius",
     "mgt_vrf": "mgmt_junos",
     "mgt_prefix_v6": "2601:de2a:aa01:1003::/64",
+    "protect_re": {
+        "enabled": true,
+        "mgt_allowed_v4": [ "172.31.255.0/24" ],
+        "mgt_allowed_v6": [ "2601:de2a:aa01:1004::/64" ]
+    },
     "dhcp4_server": {
         "enabled": false
     },
@@ -32,12 +37,6 @@
         "servers": [
             { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "1812", "timeout": "5" },
             { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "1812", "timeout": "5" }
-        ]
-    },
-    "sflow": {
-        "enabled": true,
-        "collectors": [
-            { "host_ip": "2601:de2a:aa01:1003::71", "udp_port": "6343"}
         ]
     },
     "syslog_common": {
