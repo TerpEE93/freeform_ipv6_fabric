@@ -9,6 +9,9 @@
     "lldp": {
 
     },
+    "neighbor_discovery": {
+        "onlink_subnet_only": true
+    },
     "router_advertisement": {
         "is_slaac": true,
         "max_adv_int": "30",

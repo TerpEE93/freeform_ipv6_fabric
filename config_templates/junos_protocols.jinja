@@ -67,6 +67,7 @@ replace: protocols {
             prefix {{ irb_prefix }}/{{ vlan['ipv6_prefix_len'] }} {
                 preferred-lifetime {{ prot_prop.router_advertisement.prefix_pref_lifetime }};
                 valid-lifetime {{ prot_prop.router_advertisement.prefix_val_lifetime }};
+                on-link;
             {% if 'is_slaac' in prot_prop.router_advertisement and
                   prot_prop.router_advertisement.is_slaac %}
                 autonomous;
@@ -79,6 +80,12 @@ replace: protocols {
     {% endfor %}
 {% endif %}
     }
+{% if 'onlink_subnet_only' in prot_prop.neighbor_discovery and 
+    prot_prop.neighbor_discovery.onlink_subnet_only %}
+    neighbor-discovery {
+        onlink-subnet-only;
+    }
+{% endif %}
     l2-learning {
         telemetry {
             enable-remote-entries;

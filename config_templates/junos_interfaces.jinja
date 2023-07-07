@@ -151,8 +151,8 @@ interfaces {
                             vlan['irb_gateway4_b'] or
                             vlan['irb_gateway6_a'] or
                             vlan['irb_gateway6_b'] ) %}
-                    {% if vlan['irb_gateway4'] %}
             mac 00:1c:73:00:00:01;
+                    {% if vlan['irb_gateway4'] %}
             family inet {
                 mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan['irb_gateway4'] }}/{{ vlan['ipv4_prefix_len'] }};

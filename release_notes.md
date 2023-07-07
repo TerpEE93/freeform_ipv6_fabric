@@ -16,6 +16,10 @@ Just trying to keep track of changes as they're made.
   filter(s) and assign a list of prefixes that are allowed management access
   to the device.
 
+- Support for ND with `onlink-subnet-only`.  Set the flag in 
+  `protocol_properties` and then the `junos_protocols.jinja` will render the
+  knob accordingly.
+
 ### Changed behavior
 - Moved all of the sFlow stuff out of `custom_sys_properties` and put it all
   in `protocol_properties` instead.  I've seen the error of my ways...
@@ -30,6 +34,11 @@ Just trying to keep track of changes as they're made.
   in `custom_sys_properties` and `dhcp6_mode: relay|none` in `vrf_vlan` would
   lead to some vestigal DHCP config in `[edit system services dhcp-local-server]`)
   that broke the commit.  This is fixed now.
+
+- Fixed the logic for assigning the standard MAC address to IRB interfaces with
+  anycast addresses assigned.  There was an error in the checks on the IRB
+  ifl's that would only assign the MAC to ifl's with an IPv4 anycast assigned.  
+  Now we assign the MAC to an ifl with either an IPv4 or IPv6 anycast assigned.
 
 ## Version 0.7.0
 ### New features
