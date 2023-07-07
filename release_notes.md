@@ -3,7 +3,18 @@ Just trying to keep track of changes as they're made.
 
 ## Version 0.8.0
 ### New features
-- new
+- Added a template called `junos_filter.jinja` where you can create Junos
+  firewall filters.  The POC in this case demonstrates "Protect_RE" filters --
+  a type of filter applied to the loopback interface (lo0.0) to control
+  external interaction with the device control and management planes.  All
+  the example filters do is count certain types of traffic destined for the
+  device; they don't block anything.  Feel free to populate the template with
+  filter(s) of your choosing.
+
+- Related to the `junos_filter.jinja` feature above, `custom_sys_properties`
+  now includes a `protect_re:` section where you can enable the Protect-RE
+  filter(s) and assign a list of prefixes that are allowed management access
+  to the device.
 
 ### Changed behavior
 - Moved all of the sFlow stuff out of `custom_sys_properties` and put it all

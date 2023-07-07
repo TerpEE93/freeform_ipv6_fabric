@@ -105,7 +105,19 @@ interfaces {
 {% if loopback_ipv6 %}
     replace: lo0 {
         unit 0 {
+            family inet {
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+                filter {
+                    input Protect-RE_v4;
+                }
+    {% endif %}
+            }
             family inet6 {
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+                filter {
+                    input Protect-RE_v6;
+                }
+    {% endif %}
                 address {{ loopback_ipv6 }};
             }
         }

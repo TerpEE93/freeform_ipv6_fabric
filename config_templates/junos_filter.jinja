@@ -1,80 +1,67 @@
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
-
 {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
-    {% set ns = namespace() %}
-    {% set ns.mgt4_allowed = [ ] %}
-    {% set ns.mgt6_allowed = [ ] %}
-    {% set ns.bgp_peer6_inet = [ ] %}
-    {% set ns.bgp_peer6_evpn = [ ] %}
-    {# Determine the prefixes associated with our management interface #}
-    {% set ns.mgt4_prefix = management_ip|to_network %}
-    {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
-        {% set ns.mgt6_prefix = sys_prop.mgt_prefix_v6 %}
-    {% endif %}
-    {# Create allowed prefix lists for v4 and v6 #}
-    {% if 'mgt_allowed_v4' in sys_prop.protect_re %}
-        {% for prefix in sys_prop.protect_re.mgt_allowed_v4 %}
-            {{ ns.mgt4_allowed.append(prefix) or '' }}
-        {%- endfor %}
-    {% endif %}
-    {% if 'mgt_allowed_v6' in sys_prop.protect_re %}
-        {% for prefix in sys_prop.protect_re.mgt_allowed_v6 %}
-            {{ ns.mgt6_allowed.append(prefix) or '' }}
-        {%- endfor %}
-    {% endif %}
-    {# Determine addresses of BGP peers for family inet/inet6 #}
-    {% for interface_name, iface in interfaces.iteritems() %}
-        {% if iface.get('ipv6_address') %}
-            {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-            {% for neighbor_interface in neighbor_interfaces %}
-                {% if neighbor_interface.get('ipv6_address') %}
-                    {{ ns.bgp_peer6_inet.append(neighbor_interface.ipv6_address) or '' }}
-                {%- endif %}
-            {% endfor %}
-        {% endif %}
-    {% endfor %}
-    {# Only leaf devices will have peers for family evpn-sgnaling #}
-    {% if 'leaf' in system_tags %}
-        {% for interface_name, iface in interfaces.iteritems() %}
-            {% if iface.get('ipv6_address') %}
-                {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
-                {% for neighbor_interface in neighbor_interfaces %}
-        		    {% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id),
-                        'loopback_assignments', 'fabric_resources', 'devices') %}
-                    {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
-                        or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
-                        {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
-                    {% else %}
-                        {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
-                    {% endif %}
-                    {{ ns.bgp_peer6_evpn.append(peer_ipv6) or '' }}
-                {% endfor %}
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-    {# Now to create the prefix lists #}
-policy-options {
-    {% if ns.mgt4_allowed != [ ] %}
-    prefix-list MGT_SUBNETS_v4 {
-        {% for prefix in ns.mgt4_allowed %}
-        {{ prefix }};
-        {% endfor %}
+firewall {
+    family inet {
+        filter Protect-RE_v4 {
+            term MGT {
+                from {
+                    source-prefix-list {
+                        MGT_SUBNETS_v4;
+                    }
+                    port [ ssh ntp radius radacct tacacs domain syslog snmp snmptrap 830 ];
+                }
+                then {
+                    count MGT_v4;
+                    accept;
+                }
+            }
+            term BGP {
+                from {
+                    port 179;
+                }
+                then {
+                    count BGP_v4;
+                    accept;
+                }
+            }
+            term DEFAULT {
+                then {
+                    count OTHER_v4;
+                    accept;
+                }
+            }
+        }        
     }
-    {% endif %}
-    {% if ns.mgt6_allowed != [ ] %}
-    prefix-list MGT_SUBNETS_v6 {
-        {% for prefix in ns.mgt6_allowed %}
-        {{ prefix }};
-        {% endfor %}
+    family inet6 {
+        filter Protect-RE_v6 {
+            term MGT {
+                from {
+                    source-prefix-list {
+                        MGT_SUBNETS_v6;
+                    }
+                    port [ ssh ntp radius radacct tacacs domain syslog snmp snmptrap 830 ];
+                }
+                then {
+                    count MGT_v6;
+                    accept;
+                }
+            }
+            term BGP {
+                from {
+                    port 179;
+                }
+                then {
+                    count BGP_v6;
+                    accept;
+                }
+            }
+            term DEFAULT {
+                then {
+                    count OTHER_v6;
+                    accept;
+                }
+            }
+        }        
     }
-    {% endif %}
-
-
-
-
-    {% endif %}
 }
-
-
-
 {% endif %}

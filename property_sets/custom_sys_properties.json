@@ -7,13 +7,16 @@
     "protect_re": {
         "enabled": true,
         "mgt_allowed_v4": [ "172.31.255.0/24" ],
-        "mgt_allowed_v6": [ "2601:de2a:aa01:1004::/64" ]
+        "mgt_allowed_v6": [
+            "2601:de2a:aa01:1004::/64",
+            "2601:de2a:aa01:1004::/64"
+        ]
     },
     "dhcp4_server": {
         "enabled": false
     },
     "dhcp6_server": {
-        "enabled": true,
+        "enabled": false,
         "is_prefix_delegation": true,
         "pd_pool_name": "PD_POOL",
         "pd_pool_prefix": "2601:de2a:aa01:1000::/52"
