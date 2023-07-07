@@ -20,6 +20,18 @@ Just trying to keep track of changes as they're made.
   `protocol_properties` and then the `junos_protocols.jinja` will render the
   knob accordingly.
 
+- Added support for 802.1X authentication of end users/systems.  Currently
+  supports Radius as the authentication method and mac-radius for the
+  auth mode.  It supports a single supplicant per switch port, so the first
+  "user" to authenticate will determine the state of the port for all other
+  users.  You can set the configurable items for 802.1X in under
+  `custom_sys_properties`.  If multiple radius servers are configured under the
+  `dot1x.radius_servers` key, then their order in the list of servers determines
+  what order Junos attemtps to try to authenticate against.  So put your most
+  preferred server first, and list them in decreasing order of priority.  You
+  can enable 802.1X authentication on a link or aggregate link by assigning the
+  metadata tag `dot1x` to the link.
+
 ### Changed behavior
 - Moved all of the sFlow stuff out of `custom_sys_properties` and put it all
   in `protocol_properties` instead.  I've seen the error of my ways...

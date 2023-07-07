@@ -7,6 +7,7 @@
 {% set ns.dev_vlan_list = [ ] %}
 {% set ns.global_vlan_list = [ ] %}
 {% set ns.nameserver_list = [ ] %}
+{% set ns.dot1x_if_list = [ ] %}
 {% for server in sys_prop.dns.servers %}
     {{ns.nameserver_list.append( server ) or '' }}
 {% endfor %}
@@ -36,6 +37,33 @@
 {% endfor %}
 
 replace: protocols {
+{% if 'enabled' in sys_prop.dot1x and sys_prop.dot1x.enabled %}
+    dot1x {
+        authenticator {
+            authentication-profile-name {{ sys_prop.dot1x.auth_profile_name }};
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if ('mode_trunk' in iface.link_tags or
+            'mode_access' in iface.link_tags) and
+            'dot1x' in iface.link_tags -%}
+            {{ ns.dot1x_if_list.append(iface['name']) or '' }}
+        {%- endif %}
+    {% endfor %}
+    {%if ns.dot1x_if_list != '' %}
+            interface {
+        {% for if_name in ns.dot1x_if_list %}
+                {{ if_name }}.0 {
+                    supplicant {{ sys_prop.dot1x.supplicant }};
+            {% if 'auth_mode' in sys_prop.dot1x and
+                sys_prop.dot1x.auth_mode == 'mac-radius' %}
+                    mac-radius;
+            {% endif %}
+                }
+        {% endfor %}
+            }
+    {% endif %}
+        }
+    }
+{% endif %}
     router-advertisement {
 {% for interface_name, iface in interfaces.iteritems() %}
     {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}

@@ -28,6 +28,17 @@
             "2601:de2a:aa01:1003::9"
         ]
     },
+    "dot1x": {
+        "enabled": true,
+        "supplicant": "single",
+        "auth_profile_name": "AOS_RADIUS_DOT1X",
+        "auth_mode": "mac-radius",
+        "auth_method": "radius",
+        "radius_servers": [
+            { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "1812", "timeout": "5" },
+            { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "1812", "timeout": "5" }
+        ]
+    },
     "ntp": {
         "enabled": true,
         "servers": [
