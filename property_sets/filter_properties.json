@@ -1,0 +1,77 @@
+{
+    "BLOCK_ICMP_INET": {
+        "family": "inet",
+        "terms": [
+            {
+                "term_name": "ICMP",
+                "prefix": "",
+                "src_prefix": "",
+                "dst_prefix": "",
+                "next_header": "",
+                "protocol": "icmp",
+                "src_port": "",
+                "dst_port": "",
+                "pkt_action": "discard",
+                "counter": "ICMP",
+                "syslog": false
+            },
+            {
+                "term_name": "DEFAULT",
+                "pkt_action": "accept",
+                "counter": "NOT_ICMP",
+                "syslog": false
+            }
+        ]
+    },
+    "BLOCK_ICMP6_INET6": {
+        "family": "inet6",
+        "terms": [
+            {
+                "term_name": "ICMP6",
+                "prefix": "",
+                "src_prefix": "",
+                "dst_prefix": "",
+                "next_header": "icmp6",
+                "protocol": "",
+                "src_port": "",
+                "dst_port": "",
+                "pkt_action": "discard",
+                "counter": "ICMP6",
+                "syslog": false
+            },
+            {
+                "term_name": "DEFAULT",
+                "pkt_action": "accept",
+                "counter": "NOT_ICMP6",
+                "syslog": false
+            }
+        ]
+    },
+    "BLOCK_ICMP6_ETH": {
+        "family": "ethernet-switching",
+        "terms": [
+            {
+                "term_name": "ICMP6",
+                "ipv4_prefix": "",
+                "ipv4_src_prefix": "",
+                "ipv4_dst_prefix": "",
+                "ipv4_protocol": "",
+                "ipv6_prefix": "",
+                "ipv6_src_prefix": "",
+                "ipv6_dst_prefix": "",
+                "ipv6_next_header": "icmp6",
+                "src_port": "",
+                "dst_port": "",
+                "pkt_action": "discard",
+                "counter": "ICMP6",
+                "syslog": false
+            },
+            {
+                "term_name": "DEFAULT",
+                "pkt_action": "accept",
+                "counter": "NOT_ICMP6",
+                "syslog": false
+            }
+        ]
+    }
+}

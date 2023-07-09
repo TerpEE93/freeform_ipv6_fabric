@@ -1,5 +1,5 @@
 {
-    "enabled": true,
+    "enabled": false,
     "location": "Sector 0:0:1",
     "contact": "LtCdr Geordi LaForge",
     "communities": {

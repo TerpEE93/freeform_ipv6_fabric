@@ -5,7 +5,7 @@
     "mgt_vrf": "mgmt_junos",
     "mgt_prefix_v6": "2601:de2a:aa01:1003::/64",
     "protect_re": {
-        "enabled": true,
+        "enabled": false,
         "mgt_allowed_v4": [ "172.31.255.0/24" ],
         "mgt_allowed_v6": [
             "2601:de2a:aa01:1004::/64",
@@ -22,14 +22,14 @@
         "pd_pool_prefix": "2601:de2a:aa01:1000::/52"
     },
     "dns": {
-        "enabled": true,
+        "enabled": false,
         "servers": [
             "2601:de2a:aa01:1003::8",
             "2601:de2a:aa01:1003::9"
         ]
     },
     "dot1x": {
-        "enabled": true,
+        "enabled": false,
         "supplicant": "single",
         "auth_profile_name": "AOS_RADIUS_DOT1X",
         "auth_mode": "mac-radius",
@@ -40,14 +40,14 @@
         ]
     },
     "ntp": {
-        "enabled": true,
+        "enabled": false,
         "servers": [
             "2601:de2a:aa01:1003::31",
             "2601:de2a:aa01:1003::32"
         ]
     },
     "radius": {
-        "enabled": true,
+        "enabled": false,
         "servers": [
             { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "1812", "timeout": "5" },
             { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "1812", "timeout": "5" }
@@ -86,7 +86,7 @@
         ]
     },
     "tacplus": {
-        "enabled": true,
+        "enabled": false,
         "servers": [
             { "host_ip": "2601:de2a:aa01:1003::65", "secret": "myKey-01", "port": "49", "timeout": "5" },
             { "host_ip": "2601:de2a:aa01:1003::66", "secret": "myKey-02", "port": "49", "timeout": "5" }

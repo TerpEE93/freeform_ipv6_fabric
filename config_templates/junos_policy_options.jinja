@@ -4,6 +4,9 @@
 {% set ns.ri_w_bgp = [] %}
 {% set ns.ri_w_ospf = [] %}
 {% set ns.ri_w_static = [] %}
+{% set ns.mgt4_allowed = [ ] %}
+{% set ns.mgt6_allowed = [ ] %}
+{% set ns.bgp_peer6 = [ ] %}
 {% for ri in vrf_vlan.vrfs %}
     {% set ns.is_bgp = false %}
     {% set ns.is_ospf = false %}
@@ -20,9 +23,6 @@
 {% endif %}
 {# Stuff we need for a Protect-RE filter #}
 {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
-    {% set ns.mgt4_allowed = [ ] %}
-    {% set ns.mgt6_allowed = [ ] %}
-    {% set ns.bgp_peer6 = [ ] %}
     {# Create allowed prefix lists for v4 and v6 #}
     {% if 'mgt_allowed_v4' in sys_prop.protect_re %}
         {% for prefix in sys_prop.protect_re.mgt_allowed_v4 %}

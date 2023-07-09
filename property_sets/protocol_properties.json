@@ -21,7 +21,7 @@
         "rdnss_lifetime": "1800"
     },
     "sflow": {
-        "enabled": true,
+        "enabled": false,
         "source_v6_supported": false,
         "polling_interval": "5",
         "ingress_sample_rate": "1000",

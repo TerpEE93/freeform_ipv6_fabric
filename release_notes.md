@@ -32,9 +32,26 @@ Just trying to keep track of changes as they're made.
   can enable 802.1X authentication on a link or aggregate link by assigning the
   metadata tag `dot1x` to the link.
 
+- Added the ability to create firewall filters and apply them to host-facing
+  interfaces.  The capability is fairly limited right now.  You create the
+  filter by modifying the `filter_properties` property set per the examples
+  included in this bundle.  Then you apply the filter to a host-facing link
+  or aggregate link by assigning a metadata tag to the link, where the tag is
+  the name of the filter you wish to apply.  The filter must be of type
+  `family ethernet-switching`, and it is applied in the inbound direction
+  only.
+
 ### Changed behavior
 - Moved all of the sFlow stuff out of `custom_sys_properties` and put it all
   in `protocol_properties` instead.  I've seen the error of my ways...
+
+- Improved the logic around rendering config for host-facing interfaces, where
+  we use metadata tags to match and apply config.  We now check to make sure
+  the interface is NOT a LAG memeber before applying the config, as LAG members
+  should only include config that associates them with an aggregated
+  interface.  So if you accidentally apply `mode_trunk` or a VLAN tag to a
+  LAG member, it will no longer break the commit on the device, as the config
+  assocaited with the tag will not be applied.
 
 ### Bug fixes
 - Cleaning up the "some platforms don't support sFlow to IPv6 collectors"
