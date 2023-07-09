@@ -1,6 +1,74 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 0.8.0
+### New features
+- Added a template called `junos_filter.jinja` where you can create Junos
+  firewall filters.  The POC in this case demonstrates "Protect_RE" filters --
+  a type of filter applied to the loopback interface (lo0.0) to control
+  external interaction with the device control and management planes.  All
+  the example filters do is count certain types of traffic destined for the
+  device; they don't block anything.  Feel free to populate the template with
+  filter(s) of your choosing.
+
+- Related to the `junos_filter.jinja` feature above, `custom_sys_properties`
+  now includes a `protect_re:` section where you can enable the Protect-RE
+  filter(s) and assign a list of prefixes that are allowed management access
+  to the device.
+
+- Support for ND with `onlink-subnet-only`.  Set the flag in 
+  `protocol_properties` and then the `junos_protocols.jinja` will render the
+  knob accordingly.
+
+- Added support for 802.1X authentication of end users/systems.  Currently
+  supports Radius as the authentication method and mac-radius for the
+  auth mode.  It supports a single supplicant per switch port, so the first
+  "user" to authenticate will determine the state of the port for all other
+  users.  You can set the configurable items for 802.1X in under
+  `custom_sys_properties`.  If multiple radius servers are configured under the
+  `dot1x.radius_servers` key, then their order in the list of servers determines
+  what order Junos attemtps to try to authenticate against.  So put your most
+  preferred server first, and list them in decreasing order of priority.  You
+  can enable 802.1X authentication on a link or aggregate link by assigning the
+  metadata tag `dot1x` to the link.
+
+- Added the ability to create firewall filters and apply them to host-facing
+  interfaces.  The capability is fairly limited right now.  You create the
+  filter by modifying the `filter_properties` property set per the examples
+  included in this bundle.  Then you apply the filter to a host-facing link
+  or aggregate link by assigning a metadata tag to the link, where the tag is
+  the name of the filter you wish to apply.  The filter must be of type
+  `family ethernet-switching`, and it is applied in the inbound direction
+  only.
+
+### Changed behavior
+- Moved all of the sFlow stuff out of `custom_sys_properties` and put it all
+  in `protocol_properties` instead.  I've seen the error of my ways...
+
+- Improved the logic around rendering config for host-facing interfaces, where
+  we use metadata tags to match and apply config.  We now check to make sure
+  the interface is NOT a LAG memeber before applying the config, as LAG members
+  should only include config that associates them with an aggregated
+  interface.  So if you accidentally apply `mode_trunk` or a VLAN tag to a
+  LAG member, it will no longer break the commit on the device, as the config
+  assocaited with the tag will not be applied.
+
+### Bug fixes
+- Cleaning up the "some platforms don't support sFlow to IPv6 collectors"
+  issue.  The `junos_protocols.jinja` template will henceforth not render any
+  IPv6-related config if `sflow.source_v6_supported` is false.
+
+- We were performing the checks for DHCP server/relay/none incorrectly, and
+  an inconsistent setting across property sets (e.g., `dhcp6_server: enabled` 
+  in `custom_sys_properties` and `dhcp6_mode: relay|none` in `vrf_vlan` would
+  lead to some vestigal DHCP config in `[edit system services dhcp-local-server]`)
+  that broke the commit.  This is fixed now.
+
+- Fixed the logic for assigning the standard MAC address to IRB interfaces with
+  anycast addresses assigned.  There was an error in the checks on the IRB
+  ifl's that would only assign the MAC to ifl's with an IPv4 anycast assigned.  
+  Now we assign the MAC to an ifl with either an IPv4 or IPv6 anycast assigned.
+
 ## Version 0.7.0
 ### New features
 - Added support for sflow to an IPv6 target.  The config script will add all

@@ -1,5 +1,6 @@
 {% set this_router = hostname %}
 {% set intf_prop = property_sets.get('interface_properties', {} ) %}
+{% set f_prop = property_sets.get('filter_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set loopback_prefix = function.get_resource_value(resources, 'loopback_assignments', 'fabric_resources', 'devices') %}
 {% if loopback_prefix != '' %}
@@ -32,8 +33,14 @@
 {% set ns = namespace( ) %}
 {% set ns.dev_vlan_list = [ ] %}
 {% set ns.global_vlan_list = [ ] %}
+{% set ns.eth_filter_list = [ ] %}
 {% for vlan in vrf_vlan.vlans %}
         {{ ns.global_vlan_list.append(vlan['vlan_name']) or "" }}
+{%- endfor %}
+{% for k, v in f_prop.items() %}
+    {% if v['family'] == 'ethernet-switching' %}
+        {{ ns.eth_filter_list.append(k) or '' }}
+    {% endif %}
 {%- endfor %}
 
 interfaces {
@@ -77,7 +84,8 @@ interfaces {
             }
         }
     {# Is this a host-facing interface? #}
-    {% elif 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
+    {% elif ('mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags)
+            and not iface.part_of %}
         {% set intf_mode = 'trunk' if 'mode_trunk' in iface.link_tags else 'access' %}
         {% set intf_vlan_list = [] %}
         {% for vlan in ns.global_vlan_list %}
@@ -94,6 +102,13 @@ interfaces {
                     members [ {% for vlan in intf_vlan_list %}{{ vlan }} {% endfor %}];
                 }
             {% endif %}
+            {% for filter in ns.eth_filter_list %}
+                {% if filter in iface.link_tags %}
+                filter {
+                    input {{ filter }};
+                }
+                {% endif %}
+            {% endfor %}
             }
         }
     {% else %}
@@ -105,8 +120,20 @@ interfaces {
 {% if loopback_ipv6 %}
     replace: lo0 {
         unit 0 {
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+            family inet {
+                filter {
+                    input Protect-RE_v4;
+                }
+            }
+    {% endif %}
             family inet6 {
                 address {{ loopback_ipv6 }};
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+                filter {
+                    input Protect-RE_v6;
+                }
+    {% endif %}
             }
         }
     {% if 'leaf' in system_tags %}
@@ -139,8 +166,8 @@ interfaces {
                             vlan['irb_gateway4_b'] or
                             vlan['irb_gateway6_a'] or
                             vlan['irb_gateway6_b'] ) %}
-                    {% if vlan['irb_gateway4'] %}
             mac 00:1c:73:00:00:01;
+                    {% if vlan['irb_gateway4'] %}
             family inet {
                 mtu {{ intf_prop.irb_intf_mtu }};
                 address {{ vlan['irb_gateway4'] }}/{{ vlan['ipv4_prefix_len'] }};

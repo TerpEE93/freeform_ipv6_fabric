@@ -1,4 +1,5 @@
 {% set snmp_prop = property_sets.get('snmp_properties', {} ) %}
+replace: snmp {
 {% if 'enabled' in snmp_prop and snmp_prop.enabled %}
     {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
     {% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
@@ -9,7 +10,6 @@
         {% set is_mgt_v6 = true%}
     {% endif %}
 
-snmp {
     name {{ hostname }};
     contact "{{ snmp_prop.contact }}";
     filter-duplicates;
@@ -49,6 +49,6 @@ snmp {
     }
         {% endfor %}
     {% endif %}
-}
 {% endif %}
+}
 {# EOF #}

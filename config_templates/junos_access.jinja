@@ -1,0 +1,46 @@
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}
+replace: access {
+{% if ('enabled' in sys_prop.dhcp4_server and sys_prop.dhcp4_server.enabled) or
+      ('enabled' in sys_prop.dhcp6_server and sys_prop.dhcp6_server.enabled) %}
+    address-assignment {
+    {% if 'enabled' in sys_prop.dhcp6_server and
+        sys_prop.dhcp6_server.enabled %}
+        pool {{ sys_prop.dhcp6_server.pd_pool_name }} {
+            family inet6 {
+                prefix {{ sys_prop.dhcp6_server.pd_pool_prefix }};
+                range PD-PREFIX prefix-length 64;
+                dhcp-attributes {
+        {% if 'dns' in sys_prop and sys_prop.dns.enabled %}
+                    dns-server {
+            {% for server in sys_prop.dns.servers %}
+                        {{ server }};
+            {% endfor %}
+                    }
+        {% endif %}
+                }
+            }
+        }
+    {% endif %}
+    }
+{% endif %}
+{% if 'enabled' in sys_prop.dot1x and sys_prop.dot1x.enabled %}
+    profile {{ sys_prop.dot1x.auth_profile_name }} {
+        authentication-order {{ sys_prop.dot1x.auth_method }};
+    {% if sys_prop.dot1x.auth_method == 'radius' %}
+        radius {
+            authentication-server [ {% for server in sys_prop.dot1x.radius_servers %}{{ server['host_ip'] }} {% endfor %} ]
+        }
+        {% for server in sys_prop.dot1x.radius_servers %}
+        radius-server {{ server['host_ip'] }} {
+            port {{ server['port'] }};
+            secret {{ server['secret'] }};
+            timeout {{ server['timeout'] }};
+            routing-instance {{ mgt_vrf }};
+        }
+        {% endfor %}
+    {% endif %}
+    }
+{% endif %}
+}
+{# EOF #}

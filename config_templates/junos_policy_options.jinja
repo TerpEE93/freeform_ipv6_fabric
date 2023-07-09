@@ -1,12 +1,12 @@
-{#
-    Much of this is boilerplate, but we do need to generate policies
-    per Tenant
-#}
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set ns = namespace( ) %}
 {% set ns.ri_w_bgp = [] %}
 {% set ns.ri_w_ospf = [] %}
 {% set ns.ri_w_static = [] %}
+{% set ns.mgt4_allowed = [ ] %}
+{% set ns.mgt6_allowed = [ ] %}
+{% set ns.bgp_peer6 = [ ] %}
 {% for ri in vrf_vlan.vrfs %}
     {% set ns.is_bgp = false %}
     {% set ns.is_ospf = false %}
@@ -21,6 +21,51 @@
 {% if 'gateway_A' in system_tags or 'gateway_B' in system_tags %}
     {% set is_border = true %}
 {% endif %}
+{# Stuff we need for a Protect-RE filter #}
+{% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+    {# Create allowed prefix lists for v4 and v6 #}
+    {% if 'mgt_allowed_v4' in sys_prop.protect_re %}
+        {% for prefix in sys_prop.protect_re.mgt_allowed_v4 %}
+            {{ ns.mgt4_allowed.append(prefix) or '' }}
+        {%- endfor %}
+    {% endif %}
+    {% if 'mgt_allowed_v6' in sys_prop.protect_re %}
+        {% for prefix in sys_prop.protect_re.mgt_allowed_v6 %}
+            {{ ns.mgt6_allowed.append(prefix) or '' }}
+        {%- endfor %}
+    {% endif %}
+    {# Determine addresses of BGP peers for family inet/inet6 #}
+    {% for interface_name, iface in interfaces.iteritems() %}
+        {% if iface.get('ipv6_address') %}
+            {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+            {% for neighbor_interface in neighbor_interfaces %}
+                {% if neighbor_interface.get('ipv6_address') %}
+                    {{ ns.bgp_peer6.append(neighbor_interface.ipv6_address) or '' }}
+                {%- endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+    {# Only leaf devices will have peers for family evpn-sgnaling #}
+    {% if 'leaf' in system_tags %}
+        {% for interface_name, iface in interfaces.iteritems() %}
+            {% if iface.get('ipv6_address') %}
+                {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
+                {% for neighbor_interface in neighbor_interfaces %}
+        		    {% set ns.neighbor_loopback = function.get_resource_value(all_resources.get(neighbor_interface.system_id),
+                        'loopback_assignments', 'fabric_resources', 'devices') %}
+                    {% if ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
+                        or ns.neighbor_loopback|to_netmask == 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe' %}
+                        {% set peer_ipv6 = ns.neighbor_loopback|to_ip %}
+                    {% else %}
+                        {% set peer_ipv6 = ns.neighbor_loopback|replace( '::/', '::1/' )|to_ip %}
+                    {% endif %}
+                    {{ ns.bgp_peer6.append(peer_ipv6) or '' }}
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endif %}
+{# Done Protect-RE #}
 replace: policy-options {
 {% if is_border %}
     {% for ri in vrf_vlan.vrfs %}
@@ -49,6 +94,27 @@ replace: policy-options {
     }
         {% endif %}
     {% endfor %}
+{% endif %}
+{% if ns.mgt4_allowed != [ ] %}
+    prefix-list MGT_SUBNETS_v4 {
+        {% for prefix in ns.mgt4_allowed %}
+        {{ prefix }};
+        {% endfor %}
+    }
+{% endif %}
+{% if ns.mgt6_allowed != [ ] %}
+    prefix-list MGT_SUBNETS_v6 {
+        {% for prefix in ns.mgt6_allowed %}
+        {{ prefix }};
+        {% endfor %}
+    }
+{% endif %}
+{% if ns.bgp_peer6 != [ ] %}
+    prefix-list BGP_PEERS_v6 {
+        {% for prefix in ns.bgp_peer6 %}
+        {{ prefix }};
+        {% endfor %}
+    }
 {% endif %}
     policy-statement AllPodNetworks {
         term AllPodNetworks-10 {

@@ -1,0 +1,234 @@
+{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set f_prop = property_sets.get('filter_properties', {} ) %}
+{% set ns = namespace() %}
+{% set ns.filter_v4 = [ ] %}
+{% set ns.filter_v6 = [ ] %}
+{% set ns.filter_eth = [ ] %}
+{% if f_prop != '' %}
+    {% for k, v in f_prop.items() %}
+        {% if v['family'] == 'inet' %}
+        {{ ns.filter_v4.append(k) or '' }}
+        {% elif v['family'] == 'inet6' %}
+        {{ ns.filter_v6.append(k) or '' }}
+        {% elif v['family'] == 'ethernet-switching' %}
+        {{ ns.filter_eth.append(k) or '' }}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+replace: firewall {
+{% if ('protect_re' in sys_prop and sys_prop.protect_re.enabled) or
+    ns.filter_v4 != '' %}
+    family inet {
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+        filter Protect-RE_v4 {
+            term MGT {
+                from {
+                    source-prefix-list {
+                        MGT_SUBNETS_v4;
+                    }
+                    port [ ssh ntp radius radacct tacacs domain syslog snmp snmptrap 830 ];
+                }
+                then {
+                    count MGT_v4;
+                    accept;
+                }
+            }
+            term BGP {
+                from {
+                    port 179;
+                }
+                then {
+                    count BGP_v4;
+                    accept;
+                }
+            }
+            term DEFAULT {
+                then {
+                    count OTHER_v4;
+                    accept;
+                }
+            }
+        }
+    {% endif %}
+    {% if ns.filter_v4 != '' %}
+        {% for k, v in f_prop.items() %}
+            {% if k in ns.filter_v4 %}
+        filter {{ k }} {
+                {% for term in v['terms'] %}
+            term {{ term.term_name }} {
+                from {
+                    {% if 'src_prefix' in term and term.src_prefix != '' %}
+                    source-address {{ term.src_prefix }};
+                    {% endif %}
+                    {% if 'dst_prefix' in term and term.dst_prefix != '' %}
+                    destination-address {{ term.dst_prefix }};
+                    {% endif %}
+                    {% if 'prefix' in term and term.prefix != '' %}
+                    address {{ term.prefix }};
+                    {% endif %}
+                    {% if 'protocol' in term and term.protocol != '' %}
+                    protocol {{ term.protocol }};
+                    {% endif %}
+                    {% if 'src_port' in term and term.src_port != '' %}
+                    source-port {{ term.src_port }};
+                    {% endif %}
+                    {% if 'dst_port' in term and term.dst_port != '' %}
+                    destination-port {{ term.dst_port }};
+                    {% endif %}
+                }
+                then {
+                    {% if 'counter' in term and term.counter != '' %}
+                    count {{ term.counter }};
+                    {% endif %}
+                    {% if 'syslog' in term and term.syslog %}
+                    syslog;
+                    {% endif %}
+                    {% if 'pkt_action' in term and term.pkt_action != '' %}
+                    {{ term.pkt_action }};
+                    {% endif %}
+                }
+            }
+                {% endfor %}
+        }
+            {% endif %}
+        {% endfor %}
+    {% endif %}        
+    }
+{% endif %}
+{% if ('protect_re' in sys_prop and sys_prop.protect_re.enabled) or
+    ns.filter_v6 != '' %}
+    family inet6 {
+    {% if 'protect_re' in sys_prop and sys_prop.protect_re.enabled %}
+        filter Protect-RE_v6 {
+            term MGT {
+                from {
+                    source-prefix-list {
+                        MGT_SUBNETS_v6;
+                    }
+                    port [ ssh ntp radius radacct tacacs domain syslog snmp snmptrap 830 ];
+                }
+                then {
+                    count MGT_v6;
+                    accept;
+                }
+            }
+            term BGP {
+                from {
+                    port 179;
+                }
+                then {
+                    count BGP_v6;
+                    accept;
+                }
+            }
+            term DEFAULT {
+                then {
+                    count OTHER_v6;
+                    accept;
+                }
+            }
+        }
+    {% endif %}        
+    {% if ns.filter_v6 != '' %}
+        {% for k, v in f_prop.items() %}
+            {% if k in ns.filter_v6 %}
+        filter {{ k }} {
+                {% for term in v['terms'] %}
+            term {{ term.term_name }} {
+                from {
+                    {% if 'src_prefix' in term and term.src_prefix != '' %}
+                    source-address {{ term.src_prefix }};
+                    {% endif %}
+                    {% if 'dst_prefix' in term and term.dst_prefix != '' %}
+                    destination-address {{ term.dst_prefix }};
+                    {% endif %}
+                    {% if 'prefix' in term and term.prefix != '' %}
+                    address {{ term.prefix }};
+                    {% endif %}
+                    {% if 'next_header' in term and term.next_header != '' %}
+                    next-header {{ term.next_header }};
+                    {% endif %}
+                    {% if 'src_port' in term and term.src_port != '' %}
+                    source-port {{ term.src_port }};
+                    {% endif %}
+                    {% if 'dst_port' in term and term.dst_port != '' %}
+                    destination-port {{ term.dst_port }};
+                    {% endif %}
+                }
+                then {
+                    {% if 'counter' in term and term.counter != '' %}
+                    count {{ term.counter }};
+                    {% endif %}
+                    {% if 'syslog' in term and term.syslog %}
+                    syslog;
+                    {% endif %}
+                    {% if 'pkt_action' in term and term.pkt_action != '' %}
+                    {{ term.pkt_action }};
+                    {% endif %}
+                }
+            }
+                {% endfor %}
+        }
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    }
+{% endif %}
+{% if ns.filter_eth != '' %}
+    family ethernet-switching {
+    {% for k, v in f_prop.items() %}
+        {% if k in ns.filter_eth %}
+        filter {{ k }} {
+            {% for term in v['terms'] %}
+            term {{ term.term_name }} {
+                from {
+                {% if 'ipv4_src_prefix' in term and term.ipv4_src_prefix != '' %}
+                    ip-source-address {{ term.ipv4_src_prefix }};
+                {% endif %}
+                {% if 'ipv4_dst_prefix' in term and term.ipv4_dst_prefix != '' %}
+                    ip-destination-address {{ term.ipv4_dst_prefix }};
+                {% endif %}
+                {% if 'ipv4_prefix' in term and term.ipv4_prefix != '' %}
+                    ip-address {{ term.ipv4_prefix }};
+                {% endif %}
+                {% if 'ipv4_protocol' in term and term.ipv4_protocol != '' %}
+                    ip-protocol {{ term.ipv4_protocol }};
+                {% endif %}
+                {% if 'ipv6_src_prefix' in term and term.ipv6_src_prefix != '' %}
+                    ipv6-source-address {{ term.ipv6_src_prefix }};
+                {% endif %}
+                {% if 'ipv6_dst_prefix' in term and term.ipv6_dst_prefix != '' %}
+                    ipv6-destination-address {{ term.ipv6_dst_prefix }};
+                {% endif %}
+                {% if 'ipv6_prefix' in term and term.ipv6_prefix != '' %}
+                    ipv6-address {{ term.ipv6_prefix }};
+                {% endif %}
+                {% if 'ipv6_next_header' in term and term.ipv6_next_header != '' %}
+                    ipv6-next-header {{ term.ipv6_next_header }};
+                {% endif %}
+                {% if 'src_port' in term and term.src_port != '' %}
+                    source-port {{ term.src_port }};
+                {% endif %}
+                {% if 'dst_port' in term and term.dst_port != '' %}
+                    destination-port {{ term.dst_port }};
+                {% endif %}
+                }
+                then {
+                {% if 'counter' in term and term.counter != '' %}
+                    count {{ term.counter }};
+                {% endif %}
+                {% if 'syslog' in term and term.syslog %}
+                    syslog;
+                {% endif %}
+                {% if 'pkt_action' in term and term.pkt_action != '' %}
+                    {{ term.pkt_action }};
+                {% endif %}
+                }
+            }
+            {% endfor %}
+        }
+        {% endif %}
+    {% endfor %}
+    }
+{% endif %} 
+}
