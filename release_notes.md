@@ -1,6 +1,18 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 1.0.0-RC1
+### New features
+None
+
+### Changed behavior
+TBD
+
+### Bug fixes
+- Missed the export policy necessary for OSPF and OSPFv3 to advertise networks
+  not configured locally on the device.  Now we advertise all the Type 5 routes
+  associated with the routing instance via OSPF(v3).
+
 ## Version 0.8.0
 ### New features
 - Added a template called `junos_filter.jinja` where you can create Junos
