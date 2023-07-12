@@ -12,6 +12,9 @@
     "neighbor_discovery": {
         "onlink_subnet_only": true
     },
+    "ospf": {
+        "ext_pref": "200"
+    },
     "router_advertisement": {
         "is_slaac": true,
         "max_adv_int": "30",

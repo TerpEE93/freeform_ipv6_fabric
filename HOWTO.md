@@ -71,9 +71,12 @@ Here are the basic elements to make the magic happen...
 5.  Now import the Config Templates and Property Sets from this repo.
     You will need to edit the property sets for your specific blueprint.
     - common_sys_properties: Basic settings under the `[edit system]` container.
+    - filter_properties: Basic control for setting up Junos firewall filters.
     - interface_properties: Set MTU for fabric interfaces, host interfaces,
         and IRB interfaces.
-    - vrf_vlan: Define the routing zones (VRF) and VLAN's assigned to each.
+    - protocol_properties: Default settings for use with BGP, OSPF, etc.
+    - snmo_properties: Configuration settings for SNMP
+    - vrf_vlan: Define the routing zones (VRF's) and VLAN's assigned to each.
 
     If you're shy about generating the vrf_vlan Property Set by hand, there's
     now a sample Excel spreadsheet and Python tool to generate proper JSON for

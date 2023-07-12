@@ -276,6 +276,7 @@ routing-instances {
         {% endif %}
         {% if ns.is_ospf and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf {
+                external-preference {{ prot_prop.ospf.ext_pref }};
                 export BGP-AOS-Policy-{{ ri['vrf_name'] }};
                 area {{ ri['ospf_area'] }} {
                     interface {{ ri_loopback }} {
@@ -298,6 +299,7 @@ routing-instances {
         {% endif %}
         {% if ns.is_ospf3 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf3 {
+                external-preference {{ prot_prop.ospf.ext_pref }};
                 export BGP-AOS-Policy-{{ ri['vrf_name'] }};
                 area {{ ri['ospf_area'] }} {
                     interface {{ ri_loopback }} {
