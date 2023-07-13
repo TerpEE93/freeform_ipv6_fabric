@@ -1,6 +1,29 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 1.0.0-RC1
+### New features
+None
+
+### Changed behavior
+- The default preferences for OSPF and OSPFv3 external routes (150) and EVPN
+  routes (170) means that a border leaf will prefer the OSPF route to the EVPN
+  route for hosts inside the fabric.  That's bad.  So now we set the preference
+  for OSPF external routes to 200 so that the fabric prefers the EVPN route to
+  a destination in the fabric.  The preference for OSPF external routes can be
+  adjusted from the `protocol_properties` property set.  
+
+- Added OSPF-specific export/import policies to make the situation a bit more
+  robust.  The export policy applies a tag to routes exported from the fabric
+  via OSPF and OSPFv3, and the import policy rejects routes with those tags
+  applied.  So while the switches will use OSPF to route to hosts outside the
+  fabric, they will NOT use OSPF/OSPFv3 to route to hosts inside the fabric.
+
+### Bug fixes
+- Missed the export policy necessary for OSPF and OSPFv3 to advertise networks
+  not configured locally on the device.  Now we advertise all the Type 5 routes
+  associated with the routing instance via OSPF(v3).
+
 ## Version 0.8.0
 ### New features
 - Added a template called `junos_filter.jinja` where you can create Junos

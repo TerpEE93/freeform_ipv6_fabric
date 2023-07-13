@@ -84,16 +84,19 @@ routing-instances {
         {% set ns.is_ospf3 = false %}
         {% set ns.is_static_v4 = false %}
         {% set ns.is_static_v6 = false %}
-        {% set ri_vlan_id_list = [ ] %}
+        {% set ns.ri_vlan_list = [ ] %}
+        {% set ns.ri_dev_vlan_list = [ ] %}
         {% for vlan in vrf_vlan.vlans %}
-            {% if vlan['vlan_name'] in ns.dev_vlan_list and 
-                  vlan['member_of'] == ri['vrf_name'] %}
-                {{ ri_vlan_id_list.append( vlan['vlan_id'] ) or '' }}
-                {% if vlan['is_bgp'] %}{% set ns.is_bgp = true %}{% endif %}
-                {% if vlan['is_ospf'] and vlan['irb_gateway4'] != '' %}{% set ns.is_ospf = true %}{% endif %}
-                {% if vlan['is_ospf'] and vlan['irb_gateway6'] != '' %}{% set ns.is_ospf3 = true %}{% endif %}
-                {% if vlan['is_static'] and vlan['peer_ipv4'] != '' %}{% set ns.is_static_v4 = true %}{% endif %}
-                {% if vlan['is_static'] and vlan['peer_ipv6'] != '' %}{% set ns.is_static_v6 = true %}{% endif %}
+            {% if vlan['member_of'] == ri['vrf_name'] %}
+                {{ ns.ri_vlan_list.append( vlan ) or '' }}
+                {% if vlan['vlan_name'] in ns.dev_vlan_list %}
+                    {{ ns.ri_dev_vlan_list.append( vlan ) or '' }}
+                    {% if vlan['is_bgp'] %}{% set ns.is_bgp = true %}{% endif %}
+                    {% if vlan['is_ospf'] and vlan['irb_gateway4'] != '' %}{% set ns.is_ospf = true %}{% endif %}
+                    {% if vlan['is_ospf'] and vlan['irb_gateway6'] != '' %}{% set ns.is_ospf3 = true %}{% endif %}
+                    {% if vlan['is_static'] and vlan['peer_ipv4'] != '' %}{% set ns.is_static_v4 = true %}{% endif %}
+                    {% if vlan['is_static'] and vlan['peer_ipv6'] != '' %}{% set ns.is_static_v6 = true %}{% endif %}
+                {% endif %}
             {% endif %}
         {% endfor %}
 
@@ -128,12 +131,14 @@ routing-instances {
                     relay-option-82 {
                         server-id-override;
                     }
-                {% for vlan in ri_vlan_id_list %}
-                    interface irb.{{ vlan }} {
+                {% for vlan in ns.ri_dev_vlan_list %}
+                    {% if vlan['irb_gateway4'] != '' %}
+                    interface irb.{{ vlan['vlan_id'] }} {
                         overrides {
                             relay-source {{ ri_loopback }};
                         }
                     }
+                    {% endif %}
                 {% endfor %}
                 }
             {% endif %}
@@ -147,12 +152,14 @@ routing-instances {
                     }
                     group {{ ri['vrf_name'] }}-RELAYv6 {
                         active-server-group {{ri['vrf_name']}}-DHCPv6-SERVERS;
-                {% for vlan in ri_vlan_id_list %}
-                        interface irb.{{ vlan }} {
+                {% for vlan in ri_dev_vlan_list %}
+                    {% if vlan['irb_gateway6'] != '' %}
+                        interface irb.{{ vlan['vlan_id'] }} {
                             overrides {
                                 relay-source {{ ri_loopback }};
                             }
                         }
+                    {% endif %}
                 {% endfor %}
                     }
 
@@ -177,6 +184,15 @@ routing-instances {
                 {% endif %}
             {% endfor %}
                 }
+                aggregate {
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan in ns.ri_vlan_list and 
+                      vlan['irb_gateway6'] != '' %}
+                    {% set agg_prefix = [ vlan['irb_gateway6'], vlan['ipv6_prefix_len'] ]|join('/')|to_network %}
+                    route {{ agg_prefix }}/{{ vlan['ipv6_prefix_len'] }} discard;
+                {% endif %}
+            {% endfor %}
+            }
         {% endif %}
             }
         {% if ns.is_static_v4 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
@@ -186,6 +202,15 @@ routing-instances {
                       vlan['member_of'] == ri['vrf_name'] and
                       vlan['is_static'] and vlan['peer_ipv4'] != '' %}
                 route 0.0.0.0/0 next-hop {{ vlan['peer_ipv4'] }};
+                {% endif %}
+            {% endfor %}
+            }
+            aggregate {
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan in ns.ri_vlan_list and 
+                      vlan['irb_gateway4'] != '' %}
+                    {% set agg_prefix = [ vlan['irb_gateway4'], vlan['ipv4_prefix_len'] ]|join('/')|to_network %}
+                route {{ agg_prefix }}/{{ vlan['ipv4_prefix_len'] }} discard;
                 {% endif %}
             {% endfor %}
             }
@@ -276,6 +301,9 @@ routing-instances {
         {% endif %}
         {% if ns.is_ospf and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf {
+                external-preference {{ prot_prop.ospf.ext_pref }};
+                export AOS-EXPORT-OSPF;
+                import AOS-IMPORT-OSPF;
                 area {{ ri['ospf_area'] }} {
                     interface {{ ri_loopback }} {
                         passive;
@@ -297,6 +325,9 @@ routing-instances {
         {% endif %}
         {% if ns.is_ospf3 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
             ospf3 {
+                external-preference {{ prot_prop.ospf.ext_pref }};
+                export AOS-EXPORT-OSPF;
+                import AOS-IMPORT-OSPF;
                 area {{ ri['ospf_area'] }} {
                     interface {{ ri_loopback }} {
                         passive;

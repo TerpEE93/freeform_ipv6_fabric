@@ -1,4 +1,5 @@
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
+{% set prot_prop = property_sets.get('protocol_properties', {}) %}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set ns = namespace( ) %}
 {% set ns.ri_w_bgp = [] %}
@@ -202,32 +203,8 @@ replace: policy-options {
             then accept;
         }
     }
-{% endif %}
-{% if 'spine' in system_tags %}
-    policy-statement SPINE_TO_LEAF_EVPN_OUT {
-        term SPINE_TO_LEAF_EVPN_OUT-10 {
-            then {
-                community add FROM_SPINE_EVPN_TIER;
-                accept;
-            }
-        }
-    }
-    policy-statement SPINE_TO_LEAF_FABRIC_OUT {
-        term SPINE_TO_LEAF_FABRIC_OUT-10 {
-            then {
-                community add FROM_SPINE_FABRIC_TIER;
-                accept;
-            }
-        }
-    }
-{% endif %}
-    policy-statement PFE-LB {
-        then {
-            load-balance per-packet;
-        }
-    }
-{% for ri in vrf_vlan.vrfs %}
-    {% if ri['vrf_name'] %}
+    {% for ri in vrf_vlan.vrfs %}
+        {% if ri['vrf_name'] %}
     policy-statement AllPodNetworks-{{ ri['vrf_name'] }} {
         term AllPodNetworks-{{ ri['vrf_name'] }}-10 {
             from {
@@ -260,12 +237,12 @@ replace: policy-options {
             }
             then accept;
         }
-        {% if is_border and ri['vrf_name'] in ns.ri_w_bgp %}
+            {% if is_border and ri['vrf_name'] in ns.ri_w_bgp %}
         term BGP-AOS-Policy-{{ ri['vrf_name'] }}-20 {
             from protocol bgp;
             then accept;
         }
-        {% endif %}
+            {% endif %}
         term BGP-AOS-Policy-{{ ri['vrf_name'] }}-50 {
             from {
                 protocol evpn;
@@ -286,7 +263,7 @@ replace: policy-options {
                 accept;
             }
         }
-        {% if is_border and ri['vrf_name'] in ns.ri_w_ospf %}
+            {% if is_border and ri['vrf_name'] in ns.ri_w_ospf %}
         term BGP-AOS-Policy-{{ ri['vrf_name'] }}-70 {
             from protocol ospf;
             then {
@@ -301,12 +278,12 @@ replace: policy-options {
                 accept;
             }
         }
-        {% endif %}
+            {% endif %}
         term BGP-AOS-Policy-{{ ri['vrf_name'] }}-100 {
             then reject;
         }
     }
-        {% if is_border %}
+            {% if is_border %}
     policy-statement RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable {
         term RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable-10 {
             from {
@@ -367,9 +344,67 @@ replace: policy-options {
             then reject;
         }
     }
+    policy-statement AOS-EXPORT-OSPF {
+        term AOS-EXPORT-OSPF-10 {
+            from {
+                family inet;
+                protocol [ direct aggregate ];
+            }
+            then {
+                tag {{ prot_prop.ospf.tag_v4 }};
+                accept;
+            }
+        }
+        term AOS-EXPORT-OSPF-20 {
+            from {
+                family inet6;
+                protocol [ direct aggregate ];
+            }
+            then {
+                tag {{ prot_prop.ospf.tag_v6 }};
+                accept;
+            }
+        }
+        term AOS-EXPORT-OSPF-100 {
+            then reject;
+        }
+    }
+    policy-statement AOS-IMPORT-OSPF {
+        term AOS-IMPORT-OSPF-10 {
+            from tag [ {{ prot_prop.ospf.tag_v4 }} {{ prot_prop.ospf.tag_v6 }} ];
+            then reject;
+        }
+        term AOS-IMPORT-OSPF-100 {
+            then accept;
+        }
+    }
+            {% endif %}
         {% endif %}
-    {% endif %}
-{% endfor %}
+    {% endfor %}
+{% endif %}
+{% if 'spine' in system_tags %}
+    policy-statement SPINE_TO_LEAF_EVPN_OUT {
+        term SPINE_TO_LEAF_EVPN_OUT-10 {
+            then {
+                community add FROM_SPINE_EVPN_TIER;
+                accept;
+            }
+        }
+    }
+    policy-statement SPINE_TO_LEAF_FABRIC_OUT {
+        term SPINE_TO_LEAF_FABRIC_OUT-10 {
+            then {
+                community add FROM_SPINE_FABRIC_TIER;
+                accept;
+            }
+        }
+    }
+{% endif %}
+    policy-statement PFE-LB {
+        then {
+            load-balance per-packet;
+        }
+    }
     community DEFAULT_DIRECT_V4 members [ 3:20007 21001:26000 ];
     community DEFAULT_DIRECT_V6 members [ 3:20008 21001:26000 ];
     community FROM_SPINE_EVPN_TIER members [ 0:14 ];
