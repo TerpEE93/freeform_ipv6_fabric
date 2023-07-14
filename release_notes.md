@@ -1,6 +1,33 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 1.0.0-RC2
+### New features
+None
+
+### Changed behavior
+- Preparing for Apstra 4.2.0, which will move from Python 2.7 to Python 3.10.
+  All the `iteritems` and `itervalues` expressions in the Jinja templates have
+  been updated to `items` and `values` respectively.
+
+- Fixed the logic around creating aggregate routes in a routing instance.  You
+  don't need to enable static routes in a VRF to get aggregate routes, we just
+  want them in the border leafs so we can use them for any routing to the
+  outside world.
+
+- Created new import policy `RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes`
+  that will reject any routes for prefixes that originate in the fabric and
+  accepts all other routes.  We will apply this to BGP peers in the VRF(s).
+
+- Created new export policy `RoutesToExt-{{ ri['vrf_name'] }}-Aggregate` that
+  will only advertise the aggregate routes configured on each border leaf to
+  BGP peers in the VRF(s).  This means that external peers will get visibility
+  to the subnets available in the fabric, but not the individual host routes.
+
+- For BGP peering in the VRF(s), we now use the policies above as the default
+  import/export policies.  For now, you need to manually change the policies in
+  `routing_instances.jinja` if you want the Apstra Default_immutable policies.
+
 ## Version 1.0.0-RC1
 ### New features
 None

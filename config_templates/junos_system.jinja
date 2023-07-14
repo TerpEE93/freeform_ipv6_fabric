@@ -27,7 +27,7 @@ system {
             {{ ns.vrf_with_dhcp6_server.append(vrf['vrf_name']) or '' }}
         {%- endif %}
     {% endfor %}
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan['vlan_name'] in iface.link_tags -%}

@@ -36,7 +36,7 @@
         {%- endfor %}
     {% endif %}
     {# Determine addresses of BGP peers for family inet/inet6 #}
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if iface.get('ipv6_address') %}
             {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
             {% for neighbor_interface in neighbor_interfaces %}
@@ -48,7 +48,7 @@
     {% endfor %}
     {# Only leaf devices will have peers for family evpn-sgnaling #}
     {% if 'leaf' in system_tags %}
-        {% for interface_name, iface in interfaces.iteritems() %}
+        {% for interface_name, iface in interfaces.items() %}
             {% if iface.get('ipv6_address') %}
                 {% set neighbor_interfaces = iface.get('neighbor_interfaces', []) %}
                 {% for neighbor_interface in neighbor_interfaces %}
@@ -331,7 +331,7 @@ replace: policy-options {
                 route-filter-list RoutesFromExtV6-{{ ri['vrf_name'] }}-Default_immutable;
             }
             then {
-                community delete RoutesFromExtV6-{{ ri['vrf_name'] }}-Default_immutable;
+                community add RoutesFromExtV6-{{ ri['vrf_name'] }}-Default_immutable;
                 accept;
             }
         }
@@ -342,6 +342,72 @@ replace: policy-options {
         term RoutesFromExt-{{ ri['vrf_name'] }}-Default_immutable-40 {
             from family inet6;
             then reject;
+        }
+    }
+    policy-statement RoutesToExt-{{ ri['vrf_name'] }}-Aggregate {
+        term RoutesToExt-{{ ri['vrf_name'] }}-Aggregate-10 {
+            from {
+                family inet;
+                protocol [ direct aggregate ];
+                }
+            then {
+                community delete FABRIC_COMMUNITIES;
+                accept;
+            }
+        }
+        term RoutesToExt-{{ ri['vrf_name'] }}-Aggregate-20 {
+            from {
+                family inet6;
+                protocol [ direct aggregate ];
+                }
+            then {
+                community delete FABRIC_COMMUNITIES;
+                accept;
+            }
+        }
+        term RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable-30 {
+            from family inet;
+            then reject;
+        }
+        term RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable-40 {
+            from family inet6;
+            then reject;
+        }
+    }
+    policy-statement RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes {
+        term RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes-10 {
+            from {
+                family inet;
+                route-filter-list RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable;
+            }
+            then reject;
+        }
+        term RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes-20 {
+            from {
+                family inet6;
+                route-filter-list RoutesToExtV6-{{ ri['vrf_name'] }}-Default_immutable;
+            }
+            then reject;
+        }
+        term RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes-30 {
+            from {
+                family inet;
+                route-filter-list RoutesFromExt-{{ ri['vrf_name'] }}-Default_immutable;
+            }
+            then {
+                community add RoutesFromExt-{{ ri['vrf_name'] }}-Default_immutable;
+                accept;
+            }
+        }
+        term RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes-40 {
+            from {
+                family inet6;
+                route-filter-list RoutesFromExtV6-{{ ri['vrf_name'] }}-Default_immutable;
+            }
+            then {
+                community add RoutesFromExtV6-{{ ri['vrf_name'] }}-Default_immutable;
+                accept;
+            }
         }
     }
     policy-statement AOS-EXPORT-OSPF {

@@ -1,5 +1,5 @@
 {# Count the number of interfaces which are port channels (ae interfaces) #}
-{% set ae_count = interfaces.itervalues()|selectattr('if_type', 'eq', 'port_channel')|list|count %}
+{% set ae_count = interfaces.values()|selectattr('if_type', 'eq', 'port_channel')|list|count %}
 {# junos_chassis is a dictionary mapping from interface_name: port_settings_dict,
    in which each port_settings_dict entry is shadowed from the associated interface
    according to its transformation_id.

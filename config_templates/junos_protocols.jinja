@@ -26,7 +26,7 @@
 {% for vlan in vrf_vlan.vlans %}
     {{ ns.global_vlan_list.append(vlan['vlan_name']) or "" }}
 {%- endfor %}
-{% for interface_name, iface in interfaces.iteritems() %}
+{% for interface_name, iface in interfaces.items() %}
     {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         {% for vlan in ns.global_vlan_list %}
             {% if vlan in iface.link_tags %}
@@ -41,7 +41,7 @@ replace: protocols {
     dot1x {
         authenticator {
             authentication-profile-name {{ sys_prop.dot1x.auth_profile_name }};
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if ('mode_trunk' in iface.link_tags or
             'mode_access' in iface.link_tags) and
             'dot1x' in iface.link_tags -%}
@@ -65,7 +65,7 @@ replace: protocols {
     }
 {% endif %}
     router-advertisement {
-{% for interface_name, iface in interfaces.iteritems() %}
+{% for interface_name, iface in interfaces.items() %}
     {% if iface['ipv6_address'] and iface['ipv6_prefixlen'] %}
         interface {{ interface_name }}.0 {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
@@ -156,7 +156,7 @@ replace: protocols {
         }
         {% endfor %}
     {% endif %}
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if iface['role'] == 'external' and iface['if_type'] == 'ethernet' %}
         interfaces {{ iface['name'] }}.0;
         {% endif %}
@@ -166,7 +166,7 @@ replace: protocols {
     rstp {
         bridge-priority 0;
         bpdu-block-on-edge;
-{% for interface_name, iface in interfaces.iteritems() %}
+{% for interface_name, iface in interfaces.items() %}
     {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         interface {{ interface_name }} {
             edge;
@@ -192,7 +192,7 @@ replace: protocols {
                 multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}
             {% continue %}
         {% endif %}
@@ -226,7 +226,7 @@ replace: protocols {
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}
             {% continue %}
         {% endif %}
@@ -262,7 +262,7 @@ replace: protocols {
                 multiplier {{ prot_prop.bgp.bfd_multiplier }};
             }
             vpn-apply-export;
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}
             {% continue %}
         {% endif %}
@@ -294,7 +294,7 @@ replace: protocols {
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
             export ( LEAF_TO_SPINE_EVPN_OUT )
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}
             {% continue %}
         {% endif %}

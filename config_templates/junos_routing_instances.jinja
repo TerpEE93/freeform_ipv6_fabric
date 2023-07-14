@@ -19,7 +19,7 @@ routing-instances {
     {% set ns.dev_vlan_list = [] %}
     {% set vlan_list = [] %}
 
-    {% for interface_name, iface in interfaces.iteritems() %}
+    {% for interface_name, iface in interfaces.items() %}
         {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan['vlan_name'] in iface.link_tags %}
@@ -50,7 +50,7 @@ routing-instances {
         }
         vtep-source-interface lo0.0 inet6;
         service-type vlan-aware;
-        {% for interface_name, iface in interfaces.iteritems() %}
+        {% for interface_name, iface in interfaces.items() %}
             {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
         interface {{ interface_name }}.0;
             {% endif %}
@@ -174,16 +174,18 @@ routing-instances {
             auto-export;
             rib {{ ri['vrf_name'] }}.inet6.0 {
                 multipath;
-        {% if ns.is_static_v6 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
+        {% if 'gateway_A' in system_tags or 'gateway_B' in system_tags %}
+            {% if ns.is_static_v6 %}
                 static {
-            {% for vlan in vrf_vlan.vlans %}
-                {% if vlan['vlan_name'] in ns.dev_vlan_list and 
-                      vlan['member_of'] == ri['vrf_name'] and
-                      vlan['is_static'] and vlan['peer_ipv6'] != '' %}
+                {% for vlan in vrf_vlan.vlans %}
+                    {% if vlan['vlan_name'] in ns.dev_vlan_list and 
+                        vlan['member_of'] == ri['vrf_name'] and
+                        vlan['is_static'] and vlan['peer_ipv6'] != '' %}
                     route ::/0 next-hop {{ vlan['peer_ipv6'] }};
-                {% endif %}
-            {% endfor %}
+                    {% endif %}
+                {% endfor %}
                 }
+            {% endif %}
                 aggregate {
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan in ns.ri_vlan_list and 
@@ -192,19 +194,21 @@ routing-instances {
                     route {{ agg_prefix }}/{{ vlan['ipv6_prefix_len'] }} discard;
                 {% endif %}
             {% endfor %}
-            }
+                }
         {% endif %}
             }
-        {% if ns.is_static_v4 and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
+        {% if 'gateway_A' in system_tags or 'gateway_B' in system_tags %}
+            {% if ns.is_static_v4 %}
             static {
-            {% for vlan in vrf_vlan.vlans %}
-                {% if vlan['vlan_name'] in ns.dev_vlan_list and 
-                      vlan['member_of'] == ri['vrf_name'] and
-                      vlan['is_static'] and vlan['peer_ipv4'] != '' %}
+                {% for vlan in vrf_vlan.vlans %}
+                    {% if vlan['vlan_name'] in ns.dev_vlan_list and 
+                        vlan['member_of'] == ri['vrf_name'] and
+                        vlan['is_static'] and vlan['peer_ipv4'] != '' %}
                 route 0.0.0.0/0 next-hop {{ vlan['peer_ipv4'] }};
-                {% endif %}
-            {% endfor %}
+                    {% endif %}
+                {% endfor %}
             }
+            {% endif %}
             aggregate {
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan in ns.ri_vlan_list and 
@@ -261,11 +265,11 @@ routing-instances {
                         }
                         local-address {{ local_addr }}
                         hold-time 30;
-                        import ( RoutesFromExt-{{ ri['vrf_name'] }}-Default_immutable );
+                        import ( RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes );
                         family inet6 {
                             unicast;
                         }
-                        export ( RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable );
+                        export ( RoutesToExt-{{ ri['vrf_name'] }}-Aggregate );
                         peer-as {{ vlan['bgp_peer_asn'] }};
                         bfd-liveness-detection {
                             minimum-interval {{ prot_prop.bgp.bfd_min_int }};
@@ -283,11 +287,11 @@ routing-instances {
                         }
                         local-address {{ local_addr }}
                         hold-time 30;
-                        import ( RoutesFromExt-{{ ri['vrf_name'] }}-Default_immutable );
+                        import ( RoutesFromExt-{{ ri['vrf_name'] }}-No_Fabric_Routes );
                         family inet {
                             unicast;
                         }
-                        export ( RoutesToExt-{{ ri['vrf_name'] }}-Default_immutable );
+                        export ( RoutesToExt-{{ ri['vrf_name'] }}-Aggregate );
                         peer-as {{ vlan['bgp_peer_asn'] }};
                         bfd-liveness-detection {
                             minimum-interval {{ prot_prop.bgp.bfd_min_int }};

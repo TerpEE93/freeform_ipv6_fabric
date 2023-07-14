@@ -13,7 +13,7 @@
 {% endif %}
 {% set esi_lags = namespace(esi_intfs={}, lacp_system_ids={}) %}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {} ) %}
-{% for interface_name, intf_resources in interface_resources.iteritems() %}
+{% for interface_name, intf_resources in interface_resources.items() %}
     {% for resource in intf_resources if resource['label'] == 'lacp' %}
         {% for r in resource['resources'] %}
             {% if r.get('value') and r.get('label') == 'lacp_system_ids' %}
@@ -44,7 +44,7 @@
 {%- endfor %}
 
 interfaces {
-{% for interface_name, iface in interfaces.iteritems() %}
+{% for interface_name, iface in interfaces.items() %}
     replace: {{ interface_name }} {
         description "{{ iface['description'] }}";
     {# Is this a LAG member? #}
