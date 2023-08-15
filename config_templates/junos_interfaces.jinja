@@ -71,6 +71,9 @@ interfaces {
             lacp {
                 {{lacp_mode}};
                 system-id {{lacp_system_id}};
+            {% if 'lacp_slow' in iface.link_tags %}
+                periodic slow;
+            {% endif %}
             }
         }
         {% endif %}

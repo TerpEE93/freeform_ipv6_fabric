@@ -28,6 +28,11 @@ None
   import/export policies.  For now, you need to manually change the policies in
   `routing_instances.jinja` if you want the Apstra Default_immutable policies.
 
+- Added the ability to set the LACP rate to slow (1 PDU every 30 seconds) for
+  devices that can't handle the default 1 pps "fast" rate.  To set the LACP
+  rate to slow, simple add the metadata tag `lacp_slow` to the aggregated
+  interface where you'd like to apply the setting.
+
 ## Version 1.0.0-RC1
 ### New features
 None
