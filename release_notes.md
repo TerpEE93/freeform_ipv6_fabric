@@ -3,7 +3,10 @@ Just trying to keep track of changes as they're made.
 
 ## Version 1.0.0-RC2
 ### New features
-None
+- Added the ability to set the LACP rate to slow (1 PDU every 30 seconds) for
+  devices that can't handle the default 1 pps "fast" rate.  To set the LACP
+  rate to slow, simple add the metadata tag `lacp_slow` to the aggregated
+  interface where you'd like to apply the setting.
 
 ### Changed behavior
 - Preparing for Apstra 4.2.0, which will move from Python 2.7 to Python 3.10.
@@ -28,10 +31,15 @@ None
   import/export policies.  For now, you need to manually change the policies in
   `routing_instances.jinja` if you want the Apstra Default_immutable policies.
 
-- Added the ability to set the LACP rate to slow (1 PDU every 30 seconds) for
-  devices that can't handle the default 1 pps "fast" rate.  To set the LACP
-  rate to slow, simple add the metadata tag `lacp_slow` to the aggregated
-  interface where you'd like to apply the setting.
+### Bug Fixes
+- Caught a syntax error in `junos_routing_instances.jinja` that broke the
+  config render if DHCP relay was enabled in a routing instance.  This is fixed
+  now.
+
+- Fixed the logic around setting the `managed-configuration` and `autonomous`
+  flags in IPV6 router advertisements.  We now check to see if the switch is
+  configured either as the DHCP server or a DHCP relay in the appropriate
+  VRF(s).  Previously we only set the M flag if the switch was a DHCP server.
 
 ## Version 1.0.0-RC1
 ### New features

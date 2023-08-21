@@ -152,7 +152,7 @@ routing-instances {
                     }
                     group {{ ri['vrf_name'] }}-RELAYv6 {
                         active-server-group {{ri['vrf_name']}}-DHCPv6-SERVERS;
-                {% for vlan in ri_dev_vlan_list %}
+                {% for vlan in ns.ri_dev_vlan_list %}
                     {% if vlan['irb_gateway6'] != '' %}
                         interface irb.{{ vlan['vlan_id'] }} {
                             overrides {
