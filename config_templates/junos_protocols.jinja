@@ -76,23 +76,22 @@ replace: protocols {
 {% endfor %}
 {% if ns.dev_vlan_list %}
     {% for vlan in vrf_vlan.vlans %}
-        {% set ns.vrf_uses_dhcp_relay = False %}
+        {% set ns.vrf_uses_dhcp = False %}
         {% if vlan['vlan_name'] in ns.dev_vlan_list and
               vlan['irb_gateway6'] %}
             {% set irb_prefix = [ vlan['irb_gateway6'], vlan['ipv6_prefix_len'] ]|join('/')|to_network %}
             {% for vrf in vrf_vlan.vrfs %}
-                {% if ( vlan['member_of'] == vrf['vrf_name'] and
-                        vrf['dhcp6_mode'] == 'relay' ) %}
-                    {% set ns.vrf_uses_dhcp_relay = True %}
+                {% if ( (vlan['member_of'] == vrf['vrf_name'] and
+                         vrf['dhcp6_mode'] == 'relay' ) or
+                        vrf['dhcp6_mode'] == 'server' ) %}
+                    {% set ns.vrf_uses_dhcp = True %}
                 {% endif %}
             {% endfor %}
 
         interface irb.{{ vlan['vlan_id'] }} {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
             min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
-            {% if ( 'enabled' in sys_prop.dhcp6_server and
-                    sys_prop.dhcp6_server.enabled ) or
-                  ( ns.vrf_uses_dhcp_relay ) %}
+            {% if ns.vrf_uses_dhcp %}
             managed-configuration;
             other-stateful-configuration;
             {% else %}

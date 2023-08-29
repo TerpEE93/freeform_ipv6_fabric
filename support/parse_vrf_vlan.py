@@ -112,6 +112,10 @@ def gen_vrf_list( vrf_dataframe ):
 def gen_vlan_list( vlan_dataframe ):
     df = vlan_dataframe
     vlan_list_of_dict = [ ]
+    dhcpv4_low = ''
+    dhcpv4_high = ''
+    dhcpv6_low = ''
+    dhcpv6_high = ''
     ipv4_pref_len = ''
     ipv6_pref_len = ''
     irb_gw4 = ''
@@ -223,8 +227,28 @@ def gen_vlan_list( vlan_dataframe ):
                     is_ospf = True        
             else:
                 is_border = False
-            
             # End of 'if s[ 'Border?' ] == 'Yes':'
+
+            if pd.notna( s[ 'DHCPv4 Low'] ):
+                dhcpv4_low = s[ 'DHCPv4 Low' ]
+            else:
+                dhcpv4_low = ''
+            
+            if pd.notna( s[ 'DHCPv4 High'] ):
+                dhcpv4_high = s[ 'DHCPv4 High' ]
+            else:
+                dhcpv4_high = ''
+            
+            if pd.notna( s[ 'DHCPv6 Low'] ):
+                dhcpv6_low = s[ 'DHCPv6 Low' ]
+            else:
+                dhcpv6_low = ''
+            
+            if pd.notna( s[ 'DHCPv6 High'] ):
+                dhcpv6_high = s[ 'DHCPv6 High' ]
+            else:
+                dhcpv6_high = ''
+            
         # End of 'if pd.notna( s[ 'VLAN' ] ):'
 
         vlan_list_of_dict.append( {
@@ -246,7 +270,11 @@ def gen_vlan_list( vlan_dataframe ):
                             'is_ospf':is_ospf,
                             'peer_ipv4':peer_ipv4,
                             'peer_ipv6':peer_ipv6,
-                            'bgp_peer_asn':bgp_peer_asn
+                            'bgp_peer_asn':bgp_peer_asn,
+                            'dhcpv4_low': dhcpv4_low,
+                            'dhcpv4_high': dhcpv4_high,
+                            'dhcpv6_low': dhcpv6_low,
+                            'dhcpv6_high': dhcpv6_high
                             } )
         
     # End of 'for row in list(range(len( df.index ))):'

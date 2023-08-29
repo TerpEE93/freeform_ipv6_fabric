@@ -17,183 +17,135 @@ system {
 {% if hostname %}
     host-name {{hostname}};
 {% endif %}
-{% if ('enabled' in sys_prop.dhcp4_server and sys_prop.dhcp4_server.enabled) or
-      ('enabled' in sys_prop.dhcp6_server and sys_prop.dhcp6_server.enabled) %}
-    {% for vrf in vrf_vlan.vrfs %}
-        {% if vrf['dhcp4_mode'] == 'server' -%}
-            {{ ns.vrf_with_dhcp4_server.append(vrf['vrf_name']) or '' }}
-        {%- endif %}
-        {% if vrf['dhcp6_mode'] == 'server' -%}
-            {{ ns.vrf_with_dhcp6_server.append(vrf['vrf_name']) or '' }}
-        {%- endif %}
-    {% endfor %}
-    {% for interface_name, iface in interfaces.items() %}
-        {% if 'mode_trunk' in iface.link_tags or 'mode_access' in iface.link_tags %}
-            {% for vlan in vrf_vlan.vlans %}
-                {% if vlan['vlan_name'] in iface.link_tags -%}
-                    {{ ns.dev_vlan_list.append(vlan['vlan_name']) or "" }}
-                {%- endif %}
-            {%- endfor%}
-        {% endif %}
-    {% endfor %}
-    {% if ns.vrf_with_dhcp4_server !=[ ] or ns.vrf_with_dhcp6_server != [ ] %}
-    services {
-        replace: dhcp-local-server {
-        {% if 'enabled' in sys_prop.dhcp4_server and
-        sys_prop.dhcp4_server.enabled %}
-            /* Nothing for DHCPv4 yet */
-        {% endif %}
-        {% if 'enabled' in sys_prop.dhcp6_server and
-            sys_prop.dhcp6_server.enabled %}
-            dhcpv6 {
-            {% for vrf in ns.vrf_with_dhcp6_server %}
-                group {{ vrf }}-LOCAL-SERVER {
-                    overrides {
-                        delegated-pool {{ sys_prop.dhcp6_server.pd_pool_name }};
-                    }
-                {% for vlan in vrf_vlan.vlans %}
-                    {% if vlan['member_of'] == vrf and 
-                        vlan['vlan_name'] in ns.dev_vlan_list %}
-                    interface irb.{{ vlan['vlan_id'] }};
-                    {% endif %}
-                {% endfor %}
-                }
-            {% endfor %}
-            }
-        {% endif %}
-        }
-    }
-    {% endif %}
-{% endif %}
-    {% if 'domain_name' in sys_prop %}
+{% if 'domain_name' in sys_prop %}
     domain-name {{ sys_prop.domain_name }};
-    {% endif %}
-    {% if 'auth_order' in sys_prop %}
+{% endif %}
+{% if 'auth_order' in sys_prop %}
     replace: authentication-order [{% for method in sys_prop.auth_order %} {{ method }} {% endfor %}];
-    {% endif %}
-    {% if 'dns' in sys_prop and sys_prop.dns.enabled %}
+{% endif %}
+{% if 'dns' in sys_prop and sys_prop.dns.enabled %}
     replace: name-server {
-        {% for server in sys_prop.dns.servers %}
+    {% for server in sys_prop.dns.servers %}
         {{ server }} routing-instance {{ mgt_vrf }};
-        {% endfor %}
+    {% endfor %}
     }
-    {% endif %}
-    {% if 'radius' in sys_prop and sys_prop.radius.enabled and
+{% endif %}
+{% if 'radius' in sys_prop and sys_prop.radius.enabled and
           'radius' in sys_prop.auth_order %}
     replace: radius-server {
-        {% for dict_item in sys_prop.radius.servers %}
+    {% for dict_item in sys_prop.radius.servers %}
         {{ dict_item['host_ip'] }} {
             routing-instance {{ mgt_vrf }};
             port {{ dict_item['port'] }};
             secret {{ dict_item['secret'] }};
             timeout {{ dict_item['timeout'] }};
-            {% if is_mgt_v6 %}
+        {% if is_mgt_v6 %}
             source-address {{ management_ipv6 }};
-            {% endif %}
+        {% endif %}
         }
-        {% endfor %}
+    {% endfor %}
     }
-    {% endif %}
-    {% if 'tacplus' in sys_prop and sys_prop.tacplus.enabled and
+{% endif %}
+{% if 'tacplus' in sys_prop and sys_prop.tacplus.enabled and
           'tacplus' in sys_prop.auth_order %}
     replace: tacplus-server {
-        {% for dict_item in sys_prop.tacplus.servers %}
+    {% for dict_item in sys_prop.tacplus.servers %}
         {{ dict_item['host_ip'] }} {
             routing-instance {{ mgt_vrf }};
             port {{ dict_item['port'] }};
             secret {{ dict_item['secret'] }};
             timeout {{ dict_item['timeout'] }};
             single-connection;
-            {% if is_mgt_v6 %}
+        {% if is_mgt_v6 %}
             source-address {{ management_ipv6 }};
-            {% endif %}
+        {% endif %}
         }
-        {% endfor %}
+    {% endfor %}
     }
-    {% endif %}
-    {% if 'accounting_dest' in sys_prop and sys_prop.accounting_dest != '' %}
+{% endif %}
+{% if 'accounting_dest' in sys_prop and sys_prop.accounting_dest != '' %}
     replace: accounting {
         events [ login change-log interactive-commands ];
         destination {
-        {% if sys_prop.accounting_dest == 'radius' %}
+    {% if sys_prop.accounting_dest == 'radius' %}
             radius {
                 server {
-            {% for dict_item in sys_prop.tacplus.servers %}
+        {% for dict_item in sys_prop.tacplus.servers %}
                     {{ dict_item['host_ip'] }} {
                         routing-instance {{ mgt_vrf }};
                         secret {{ dict_item['secret'] }};
                         timeout {{ dict_item['timeout'] }};
-                {% if is_mgt_v6 %}
+            {% if is_mgt_v6 %}
                         source-address {{ management_ipv6 }};
-                {% endif %}
+            {% endif %}
                     }
-            {% endfor%}
+        {% endfor%}
                 }
             }
-        {% endif %}
-        {% if sys_prop.accounting_dest == 'tacplus' %}
+    {% endif %}
+    {% if sys_prop.accounting_dest == 'tacplus' %}
             tacplus {
                 server {
-            {% for dict_item in sys_prop.tacplus.servers %}
+        {% for dict_item in sys_prop.tacplus.servers %}
                     {{ dict_item['host_ip'] }} {
                         routing-instance {{ mgt_vrf }};
                         secret {{ dict_item['secret'] }};
                         timeout {{ dict_item['timeout'] }};
                         single-connection;
-                {% if is_mgt_v6 %}
+            {% if is_mgt_v6 %}
                         source-address {{ management_ipv6 }};
-                {% endif %}
+            {% endif %}
                     }
-            {% endfor%}
+        {% endfor%}
                 }
             }
-        {% endif %}
+    {% endif %}
         }
     }
-    {% endif %}
-    {% if 'ntp' in sys_prop and sys_prop.ntp.enabled %}
+{% endif %}
+{% if 'ntp' in sys_prop and sys_prop.ntp.enabled %}
     replace: ntp {
-        {% for server in sys_prop.ntp.servers %}
+    {% for server in sys_prop.ntp.servers %}
         server {{ server }};
-        {% endfor %}
-        {% if is_mgt_v6 %}
+    {% endfor %}
+    {% if is_mgt_v6 %}
         source-address {{ management_ipv6 }} routing-instance {{ mgt_vrf }};
-        {% else %}
+    {% else %}
         source-address {{ management_ip }} routing-instance {{ mgt_vrf }};
-        {% endif %}
-    }
     {% endif %}
-    {% if 'syslog_common' in sys_prop and sys_prop.syslog_common.enabled %}
+    }
+{% endif %}
+{% if 'syslog_common' in sys_prop and sys_prop.syslog_common.enabled %}
     replace: syslog {
-        {% if 'archive' in sys_prop.syslog_common %}
+    {% if 'archive' in sys_prop.syslog_common %}
         archive {%- for k, v in sys_prop.syslog_common.archive.items() %} {{ k }} {{ v}} {%- endfor %};
-        {%- endif %} 
-        {% if 'time_format' in sys_prop.syslog_common %}
+    {%- endif %} 
+    {% if 'time_format' in sys_prop.syslog_common %}
         time-format {%- for v in sys_prop.syslog_common.time_format %} {{ v}} {%- endfor %};
-        {%- endif %} 
-        {% if 'syslog_hosts' in sys_prop %}
-            {% if is_mgt_v6 %}
+    {%- endif %} 
+    {% if 'syslog_hosts' in sys_prop %}
+        {% if is_mgt_v6 %}
         source-address {{ management_ipv6 }};
-            {% endif %}
+        {% endif %}
         routing-instance {{ mgt_vrf }};
-            {% for k, v in sys_prop.syslog_hosts.items()%}
+        {% for k, v in sys_prop.syslog_hosts.items()%}
         host {{ k }} {
-                {% for dict_item in v %}
+            {% for dict_item in v %}
             {{ dict_item['facility'] }} {{ dict_item['priority'] }};
-                {% endfor %}
-        }
             {% endfor %}
-        {% endif %}
-        {% if 'syslog_files' in sys_prop %}
-            {% for k, v in sys_prop.syslog_files.items()%}
-        file {{ k }} {
-                {% for dict_item in v %}
-            {{ dict_item['facility'] }} {{ dict_item['priority'] }};
-                {% endfor %}
         }
-            {% endfor %}
-        {% endif %}
-    }
+        {% endfor %}
     {% endif %}
+    {% if 'syslog_files' in sys_prop %}
+        {% for k, v in sys_prop.syslog_files.items()%}
+        file {{ k }} {
+            {% for dict_item in v %}
+            {{ dict_item['facility'] }} {{ dict_item['priority'] }};
+            {% endfor %}
+        }
+        {% endfor %}
+    {% endif %}
+    }
+{% endif %}
 }
 {# EOF #}

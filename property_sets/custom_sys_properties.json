@@ -12,15 +12,6 @@
             "2601:de2a:aa01:1004::/64"
         ]
     },
-    "dhcp4_server": {
-        "enabled": false
-    },
-    "dhcp6_server": {
-        "enabled": false,
-        "is_prefix_delegation": true,
-        "pd_pool_name": "PD_POOL",
-        "pd_pool_prefix": "2601:de2a:aa01:1000::/52"
-    },
     "dns": {
         "enabled": false,
         "servers": [

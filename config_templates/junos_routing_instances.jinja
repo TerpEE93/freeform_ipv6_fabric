@@ -100,7 +100,7 @@ routing-instances {
             {% endif %}
         {% endfor %}
 
-    replace: {{ri['vrf_name'] }} {
+    replace: {{ ri['vrf_name'] }} {
         instance-type vrf;
         {% if ri['lo0_unit'] %}
         interface {{ ri_loopback }};
@@ -116,7 +116,76 @@ routing-instances {
         route-distinguisher {{ rd }}:{{ ri['vrf_vni'] }};
         vrf-target target:{{ ri['vrf_vni'] }}:1;
         vrf-table-label;
-        {% if ri['dhcp4_mode'] == 'relay' or ri['dhcp6_mode'] == 'relay' %}
+        {% if 'dhcp_server' in system_tags %}
+        access {
+            address-assignment {
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan['irb_gateway4'] != '' %}
+                    {% set prefix_v4 = [ vlan['irb_gateway4'], vlan['ipv4_prefix_len'] ]|join('/')|to_network %}
+                pool {{ vlan['vlan_name'] }}_v4_POOL {
+                    family inet {
+                        network {{ prefix_v4 }}/{{ vlan['ipv4_prefix_len'] }};
+                    {% if vlan['dhcpv4_low'] != '' and vlan['dhcpv4_high'] != '' %}
+                        range CLIENTS {
+                            low {{ vlan['dhcpv4_low'] }};
+                            high {{ vlan['dhcpv4_high'] }};
+                        }
+                    {% endif %}
+                        dhcp-attributes {
+                            router {
+                                {{ vlan['irb_gateway4'] }};
+                            }
+                        }
+                    }
+                }
+                {% endif %}
+                {% if vlan['irb_gateway6'] != '' %}
+                    {% set prefix_v6 = [ vlan['irb_gateway6'], vlan['ipv6_prefix_len'] ]|join('/')|to_network %}
+                pool {{ vlan['vlan_name'] }}_v6_POOL {
+                    family inet6 {
+                        prefix {{ prefix_v6 }}/{{ vlan['ipv6_prefix_len'] }};
+                    {% if vlan['dhcpv6_low'] != '' and vlan['dhcpv6_high'] != '' %}
+                        range CLIENTS {
+                            low {{ vlan['dhcpv6_low'] }}/128;
+                            high {{ vlan['dhcpv6_high'] }}/128;
+                        }
+                    {% endif %}
+                    }
+                }
+                {% endif %}
+            {% endfor %}
+            }
+        }
+        system {
+            services {
+                dhcp-local-server {
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan['member_of'] == ri['vrf_name'] and 
+                          vlan['irb_gateway4'] != '' %}
+                        group {{ vlan['vlan_name'] }}_DHCPv4_GROUP {
+                            interface irb.{{ vlan['vlan_id'] }};
+                        }
+                {% endif %}
+            {% endfor %}
+                    dhcpv6 {
+                        overrides {
+                            interface-client-limit 200;
+                        }
+            {% for vlan in vrf_vlan.vlans %}
+                {% if vlan['member_of'] == ri['vrf_name'] and 
+                          vlan['irb_gateway6'] != '' %}
+                        group {{ vlan['vlan_name'] }}_DHCPv6_GROUP {
+                            interface irb.{{ vlan['vlan_id'] }};
+                        }
+                {% endif %}
+            {% endfor %}
+                    }
+                }
+            }
+        }
+        {% endif %}
+        {% if (ri['dhcp4_mode'] == 'relay' or ri['dhcp6_mode'] == 'relay') and
+            not ('dhcp_server' in system_tags) %}
         forwarding-options {
             dhcp-relay {
             {% if ri['dhcp4_mode'] == 'relay' and ri['dhcp4_servers'] != '' %}

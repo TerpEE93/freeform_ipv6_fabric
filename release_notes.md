@@ -8,6 +8,13 @@ Just trying to keep track of changes as they're made.
   rate to slow, simple add the metadata tag `lacp_slow` to the aggregated
   interface where you'd like to apply the setting.
 
+- DHCP server in a routing instance.  This is essential for doing DHCP in an
+  EVPN/VXLAN overlay.  Please don't criticize my DHCP server, I know the logic
+  is all messed up right now.  But you can at least get addresses from the
+  switch that's been declared the DHCP server (declared by applying the tag
+  `dhcp_server` to the system) if you're directly attached.  What happens
+  beyond that is voodoo right now.  Stay away from the voodoo.
+
 ### Changed behavior
 - Preparing for Apstra 4.2.0, which will move from Python 2.7 to Python 3.10.
   All the `iteritems` and `itervalues` expressions in the Jinja templates have
@@ -40,6 +47,10 @@ Just trying to keep track of changes as they're made.
   flags in IPV6 router advertisements.  We now check to see if the switch is
   configured either as the DHCP server or a DHCP relay in the appropriate
   VRF(s).  Previously we only set the M flag if the switch was a DHCP server.
+
+- Cleaned up a lot of what was in `junos_access.jinja`, `junos_protocols.jinja`,
+  and `junos_system.jinja` to reflect that we're now doing DHCP server inside
+  the VRF.
 
 ## Version 1.0.0-RC1
 ### New features
