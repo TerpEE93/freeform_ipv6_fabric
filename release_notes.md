@@ -15,6 +15,10 @@ Just trying to keep track of changes as they're made.
   `dhcp_server` to the system) if you're directly attached.  What happens
   beyond that is voodoo right now.  Stay away from the voodoo.
 
+- I'm going to start adding a "Last Updated" comment at the top of files so I
+  can keep better track of what changed when.  I'll add the field as I make
+  changes to files.
+
 ### Changed behavior
 - Preparing for Apstra 4.2.0, which will move from Python 2.7 to Python 3.10.
   All the `iteritems` and `itervalues` expressions in the Jinja templates have
@@ -37,6 +41,17 @@ Just trying to keep track of changes as they're made.
 - For BGP peering in the VRF(s), we now use the policies above as the default
   import/export policies.  For now, you need to manually change the policies in
   `routing_instances.jinja` if you want the Apstra Default_immutable policies.
+
+- DHCP server/relay is now configured per-VLAN, instead of at the VRF level.
+  You will still need the `dhcp_server` tag on the system that acts as the
+  DHCP server, but now you can flag the specific VLAN's where you want the
+  server to listen.
+
+- Moved the SLAAC and RDNSS config to the VLANs as well.  This makes setting of
+  the 'M', 'A', and 'O' flags much easier -- it's all set in the VLAN now.
+  
+- The 'O' flag in IPv6 router advertisements is now set if either DHCP relay or
+  SLAAC is enabled.  Previously the 'O' flag was only enabled with DHCP relay.
 
 ### Bug Fixes
 - Caught a syntax error in `junos_routing_instances.jinja` that broke the

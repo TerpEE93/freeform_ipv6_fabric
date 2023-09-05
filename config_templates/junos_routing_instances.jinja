@@ -1,3 +1,4 @@
+{# Last updated 1 Sept 2023 at 15:45 EDT #}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
@@ -86,16 +87,34 @@ routing-instances {
         {% set ns.is_static_v6 = false %}
         {% set ns.ri_vlan_list = [ ] %}
         {% set ns.ri_dev_vlan_list = [ ] %}
+        {% set ns.is_dhcp4_relay = false %}
+        {% set ns.is_dhcp6_relay = false %}
         {% for vlan in vrf_vlan.vlans %}
             {% if vlan['member_of'] == ri['vrf_name'] %}
                 {{ ns.ri_vlan_list.append( vlan ) or '' }}
                 {% if vlan['vlan_name'] in ns.dev_vlan_list %}
                     {{ ns.ri_dev_vlan_list.append( vlan ) or '' }}
-                    {% if vlan['is_bgp'] %}{% set ns.is_bgp = true %}{% endif %}
-                    {% if vlan['is_ospf'] and vlan['irb_gateway4'] != '' %}{% set ns.is_ospf = true %}{% endif %}
-                    {% if vlan['is_ospf'] and vlan['irb_gateway6'] != '' %}{% set ns.is_ospf3 = true %}{% endif %}
-                    {% if vlan['is_static'] and vlan['peer_ipv4'] != '' %}{% set ns.is_static_v4 = true %}{% endif %}
-                    {% if vlan['is_static'] and vlan['peer_ipv6'] != '' %}{% set ns.is_static_v6 = true %}{% endif %}
+                    {% if vlan['is_bgp'] %}
+                        {% set ns.is_bgp = true %}
+                    {% endif %}
+                    {% if vlan['is_ospf'] and vlan['irb_gateway4'] != '' %}
+                        {% set ns.is_ospf = true %}
+                    {% endif %}
+                    {% if vlan['is_ospf'] and vlan['irb_gateway6'] != '' %}
+                        {% set ns.is_ospf3 = true %}
+                    {% endif %}
+                    {% if vlan['is_static'] and vlan['peer_ipv4'] != '' %}
+                        {% set ns.is_static_v4 = true %}
+                    {% endif %}
+                    {% if vlan['is_static'] and vlan['peer_ipv6'] != '' %}
+                        {% set ns.is_static_v6 = true %}
+                    {% endif %}
+                    {% if 'dhcp4_mode' in vlan and vlan['dhcp4_mode'] == 'relay' %}
+                        {% set ns.is_dhcp4_relay = true %}
+                    {% endif %}
+                    {% if 'dhcp6_mode' in vlan and vlan['dhcp6_mode'] == 'relay' %}
+                        {% set ns.is_dhcp6_relay = true %}
+                    {% endif %}
                 {% endif %}
             {% endif %}
         {% endfor %}
@@ -125,10 +144,10 @@ routing-instances {
                 pool {{ vlan['vlan_name'] }}_v4_POOL {
                     family inet {
                         network {{ prefix_v4 }}/{{ vlan['ipv4_prefix_len'] }};
-                    {% if vlan['dhcpv4_low'] != '' and vlan['dhcpv4_high'] != '' %}
+                    {% if vlan['dhcp4_low'] != '' and vlan['dhcp4_high'] != '' %}
                         range CLIENTS {
-                            low {{ vlan['dhcpv4_low'] }};
-                            high {{ vlan['dhcpv4_high'] }};
+                            low {{ vlan['dhcp4_low'] }};
+                            high {{ vlan['dhcp4_high'] }};
                         }
                     {% endif %}
                         dhcp-attributes {
@@ -144,10 +163,10 @@ routing-instances {
                 pool {{ vlan['vlan_name'] }}_v6_POOL {
                     family inet6 {
                         prefix {{ prefix_v6 }}/{{ vlan['ipv6_prefix_len'] }};
-                    {% if vlan['dhcpv6_low'] != '' and vlan['dhcpv6_high'] != '' %}
+                    {% if vlan['dhcp6_low'] != '' and vlan['dhcp6_high'] != '' %}
                         range CLIENTS {
-                            low {{ vlan['dhcpv6_low'] }}/128;
-                            high {{ vlan['dhcpv6_high'] }}/128;
+                            low {{ vlan['dhcp6_low'] }}/128;
+                            high {{ vlan['dhcp6_high'] }}/128;
                         }
                     {% endif %}
                     }
@@ -161,7 +180,8 @@ routing-instances {
                 dhcp-local-server {
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan['member_of'] == ri['vrf_name'] and 
-                          vlan['irb_gateway4'] != '' %}
+                      vlan['irb_gateway4'] != '' and
+                      vlan['dhcp4_mode'] == 'server' %}
                         group {{ vlan['vlan_name'] }}_DHCPv4_GROUP {
                             interface irb.{{ vlan['vlan_id'] }};
                         }
@@ -173,7 +193,8 @@ routing-instances {
                         }
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan['member_of'] == ri['vrf_name'] and 
-                          vlan['irb_gateway6'] != '' %}
+                      vlan['irb_gateway6'] != '' and
+                      vlan['dhcp6_mode'] == 'server' %}
                         group {{ vlan['vlan_name'] }}_DHCPv6_GROUP {
                             interface irb.{{ vlan['vlan_id'] }};
                         }
@@ -184,54 +205,58 @@ routing-instances {
             }
         }
         {% endif %}
-        {% if (ri['dhcp4_mode'] == 'relay' or ri['dhcp6_mode'] == 'relay') and
-            not ('dhcp_server' in system_tags) %}
+        {% if ns.is_dhcp4_relay or ns.is_dhcp6_relay %}
         forwarding-options {
             dhcp-relay {
-            {% if ri['dhcp4_mode'] == 'relay' and ri['dhcp4_servers'] != '' %}
+            {% if ns.is_dhcp4_relay %}
                 forward-only;
-                server-group {{ri['vrf_name']}}-DHCPv4-SERVERS {
-                {% for server in ri['dhcp4_servers'] %}
-                    {{ server }};
-                {% endfor %}
+                {% for vlan in ns.ri_dev_vlan_list %}
+                    {% if vlan['dhcp4_mode'] == 'relay' %}
+                server-group {{ vlan['vlan_name'] }}-DHCPv4-SERVERS {
+                    {{ vlan['dhcp4_server'] }};
                 }
-                group {{ ri['vrf_name'] }}-RELAYv4 {
-                    active-server-group {{ri['vrf_name']}}-DHCPv4-SERVERS;
+                    {% endif %}
+                {% endfor %}
+                {% for vlan in ns.ri_dev_vlan_list %}
+                    {% if vlan['irb_gateway4'] != '' and 
+                          vlan['dhcp4_mode'] == 'relay' %}
+                group {{ vlan['vlan_name'] }}-RELAYv4 {
+                    active-server-group {{ vlan['vlan_name'] }}-DHCPv4-SERVERS;
                     relay-option-82 {
                         server-id-override;
                     }
-                {% for vlan in ns.ri_dev_vlan_list %}
-                    {% if vlan['irb_gateway4'] != '' %}
                     interface irb.{{ vlan['vlan_id'] }} {
                         overrides {
                             relay-source {{ ri_loopback }};
                         }
                     }
+                }
                     {% endif %}
                 {% endfor %}
-                }
             {% endif %}
-            {% if ri['dhcp6_mode'] == 'relay' and ri['dhcp6_servers'] != '' %}
+            {% if ns.is_dhcp6_relay %}
                 dhcpv6 {
                     forward-only;
-                    server-group {{ri['vrf_name']}}-DHCPv6-SERVERS {
-                {% for server in ri['dhcp6_servers'] %}
-                        {{ server }};
-                {% endfor %}
-                    }
-                    group {{ ri['vrf_name'] }}-RELAYv6 {
-                        active-server-group {{ri['vrf_name']}}-DHCPv6-SERVERS;
                 {% for vlan in ns.ri_dev_vlan_list %}
-                    {% if vlan['irb_gateway6'] != '' %}
+                    {% if vlan['dhcp6_mode'] == 'relay' %}
+                    server-group {{ vlan['vlan_name'] }}-DHCPv6-SERVERS {
+                        {{ vlan['dhcp6_server'] }};
+                    }
+                    {% endif %}
+                {% endfor %}
+                {% for vlan in ns.ri_dev_vlan_list %}
+                    {% if vlan['irb_gateway6'] != '' and 
+                          vlan['dhcp6_mode'] == 'relay' %}
+                    group {{ vlan['vlan_name'] }}-RELAYv6 {
+                        active-server-group {{ vlan['vlan_name'] }}-DHCPv6-SERVERS;
                         interface irb.{{ vlan['vlan_id'] }} {
                             overrides {
                                 relay-source {{ ri_loopback }};
                             }
                         }
+                    }
                     {% endif %}
                 {% endfor %}
-                    }
-
                 }
             {% endif %}
             }

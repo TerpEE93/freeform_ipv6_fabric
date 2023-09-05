@@ -1,3 +1,4 @@
+{# Last updated 1 Sept 2023 at 15:45 EDT #}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
@@ -76,39 +77,35 @@ replace: protocols {
 {% endfor %}
 {% if ns.dev_vlan_list %}
     {% for vlan in vrf_vlan.vlans %}
-        {% set ns.vrf_uses_dhcp = False %}
         {% if vlan['vlan_name'] in ns.dev_vlan_list and
               vlan['irb_gateway6'] %}
             {% set irb_prefix = [ vlan['irb_gateway6'], vlan['ipv6_prefix_len'] ]|join('/')|to_network %}
-            {% for vrf in vrf_vlan.vrfs %}
-                {% if ( (vlan['member_of'] == vrf['vrf_name'] and
-                         vrf['dhcp6_mode'] == 'relay' ) or
-                        vrf['dhcp6_mode'] == 'server' ) %}
-                    {% set ns.vrf_uses_dhcp = True %}
-                {% endif %}
-            {% endfor %}
-
         interface irb.{{ vlan['vlan_id'] }} {
             max-advertisement-interval {{ prot_prop.router_advertisement.max_adv_int }};
             min-advertisement-interval {{ prot_prop.router_advertisement.min_adv_int }};
-            {% if ns.vrf_uses_dhcp %}
+            {% if  'dhcp6_mode' in vlan and 
+                    ( vlan['dhcp6_mode'] == 'server' or
+                      vlan['dhcp6_mode'] == 'relay' ) %}
             managed-configuration;
-            other-stateful-configuration;
             {% else %}
             no-managed-configuration;
+            {% endif %}
+            {% if 'is_ra_other' in vlan and vlan['is_ra_other'] %}
+            other-stateful-configuration;
+            {% else %}
             no-other-stateful-configuration;
             {% endif %}
-            {% for server in ns.nameserver_list %}
-            dns-server-address {{ server }} {
+            {% if 'is_rdnss' in vlan and vlan['is_rdnss'] and 
+                  'rdnss_server' in vlan and vlan['rdnss_server'] != '' %}
+            dns-server-address {{ vlan['rdnss_server'] }} {
                 lifetime {{ prot_prop.router_advertisement.rdnss_lifetime }};
             }
-            {% endfor %}
+            {% endif %}
             prefix {{ irb_prefix }}/{{ vlan['ipv6_prefix_len'] }} {
                 preferred-lifetime {{ prot_prop.router_advertisement.prefix_pref_lifetime }};
                 valid-lifetime {{ prot_prop.router_advertisement.prefix_val_lifetime }};
                 on-link;
-            {% if 'is_slaac' in prot_prop.router_advertisement and
-                  prot_prop.router_advertisement.is_slaac %}
+            {% if 'is_slaac' in vlan and vlan['is_slaac'] %}
                 autonomous;
             {% else %}
                 no-autonomous;

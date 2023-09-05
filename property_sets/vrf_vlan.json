@@ -4,19 +4,7 @@
             "vrf_name": "OVERLAY",
             "vrf_vni": 9002,
             "lo0_unit": 2,
-            "ospf_area": "0.0.0.0",
-            "dhcp4_mode": "relay",
-            "dhcp6_mode": "relay",
-            "dhcp4_servers": [
-                "10.110.99.5",
-                "10.110.99.6"
-            ],
-            "dhcp6_servers": [
-                "2601:face:beef::aa99:5",
-                "2601:face:beef::aa99:6",
-                "2601:face:beef::aa99:7",
-                "2601:face:beef::aa99:8"
-            ]
+            "ospf_area": "0.0.0.0"
         }
     ],
     "vlans": [
@@ -40,10 +28,18 @@
             "peer_ipv4": "",
             "peer_ipv6": "",
             "bgp_peer_asn": "",
-            "dhcpv4_low": "10.110.33.10",
-            "dhcpv4_high": "10.110.33.62",
-            "dhcpv6_low": "2601:de2a:aa01:151e::1000",
-            "dhcpv6_high": "2601:de2a:aa01:151e::ffff"
+            "is_slaac": true,
+            "is_ra_other": true,
+            "is_rdnss": false,
+            "rdnss_server": "",
+            "dhcp4_mode": "none",
+            "dhcp4_server": "",
+            "dhcp4_low": "",
+            "dhcp4_high": "",
+            "dhcp6_mode": "none",
+            "dhcp6_server": "",
+            "dhcp6_low": "",
+            "dhcp6_high": ""
         },
         {
             "vlan_name": "vlan_1315",
@@ -65,10 +61,18 @@
             "peer_ipv4": "",
             "peer_ipv6": "",
             "bgp_peer_asn": "",
-            "dhcpv4_low": "",
-            "dhcpv4_high": "",
-            "dhcpv6_low": "2601:de2a:aa01:1523::1000",
-            "dhcpv6_high": "2601:de2a:aa01:1523::ffff"
+            "is_slaac": true,
+            "is_ra_other": false,
+            "is_rdnss": true,
+            "rdnss_server": "2601:de2a:aa01:1003::8",
+            "dhcp4_mode": "none",
+            "dhcp4_server": "",
+            "dhcp4_low": "",
+            "dhcp4_high": "",
+            "dhcp6_mode": "none",
+            "dhcp6_server": "",
+            "dhcp6_low": "",
+            "dhcp6_high": ""
         },
         {
             "vlan_name": "vlan_1320",
@@ -90,10 +94,18 @@
             "peer_ipv4": "",
             "peer_ipv6": "",
             "bgp_peer_asn": "",
-            "dhcpv4_low": "10.110.34.10",
-            "dhcpv4_high": "10.110.34.62",
-            "dhcpv6_low": "",
-            "dhcpv6_high": ""
+            "is_slaac": false,
+            "is_ra_other": false,
+            "is_rdnss": false,
+            "rdnss_server": "",
+            "dhcp4_mode": "none",
+            "dhcp4_server": "",
+            "dhcp4_low": "",
+            "dhcp4_high": "",
+            "dhcp6_mode": "none",
+            "dhcp6_server": "",
+            "dhcp6_low": "",
+            "dhcp6_high": ""
         },
         {
             "vlan_name": "vlan_1330",
@@ -115,10 +127,18 @@
             "peer_ipv4": "",
             "peer_ipv6": "",
             "bgp_peer_asn": "",
-            "dhcpv4_low": "",
-            "dhcpv4_high": "",
-            "dhcpv6_low": "",
-            "dhcpv6_high": ""
+            "is_slaac": false,
+            "is_ra_other": false,
+            "is_rdnss": false,
+            "rdnss_server": "",
+            "dhcp4_mode": "none",
+            "dhcp4_server": "",
+            "dhcp4_low": "",
+            "dhcp4_high": "",
+            "dhcp6_mode": "none",
+            "dhcp6_server": "",
+            "dhcp6_low": "",
+            "dhcp6_high": ""
         },
         {
             "vlan_name": "vlan_1390",
@@ -140,10 +160,18 @@
             "peer_ipv4": "10.110.36.62",
             "peer_ipv6": "2601:de2a:aa01:156e::fffe",
             "bgp_peer_asn": 64999,
-            "dhcpv4_low": "",
-            "dhcpv4_high": "",
-            "dhcpv6_low": "",
-            "dhcpv6_high": ""
+            "is_slaac": false,
+            "is_ra_other": false,
+            "is_rdnss": false,
+            "rdnss_server": "",
+            "dhcp4_mode": "none",
+            "dhcp4_server": "",
+            "dhcp4_low": "",
+            "dhcp4_high": "",
+            "dhcp6_mode": "none",
+            "dhcp6_server": "",
+            "dhcp6_low": "",
+            "dhcp6_high": ""
         }
     ]
 }
