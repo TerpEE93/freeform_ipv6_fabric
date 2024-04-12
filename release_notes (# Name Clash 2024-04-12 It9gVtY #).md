@@ -8,15 +8,6 @@ Just trying to keep track of changes as they're made.
   rate to slow, simple add the metadata tag `lacp_slow` to the aggregated
   interface where you'd like to apply the setting.
 
-- Added support for the EX4400 as a leaf device.  This means allowing for
-  management via the vme interface, as well as making sure to add 
-  `vxlan-routing overlay-ecmp` and `evpn-vxlan shared-tunnels` under the
-  `[edit forwarding-options]` container.
-
-- Added support for BGP authentication.  There is a new key-value pair for BGP
-  in `protocol_properties.json` named `auth_key`.  Use the $9-obscured value
-  here, and it will be applied to all instances of BGP running in the fabric.
-
 - DHCP server in a routing instance.  This is essential for doing DHCP in an
   EVPN/VXLAN overlay.  Please don't criticize my DHCP server, I know the logic
   is all messed up right now.  But you can at least get addresses from the
