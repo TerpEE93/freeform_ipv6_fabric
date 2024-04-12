@@ -1,4 +1,3 @@
-{# Last updated 12 April 2024 at 14:15 EDT #}
 {% set this_router = hostname %}
 {% set intf_prop = property_sets.get('interface_properties', {} ) %}
 {% set f_prop = property_sets.get('filter_properties', {} ) %}
@@ -215,12 +214,11 @@ interfaces {
         {% endif %}
     {% endfor %}
 {% endif %}
-{# Adding IPv6 for em0/vme here.#}
+{# Adding IPv6 for em0 here.#}
 {% if 'mgt_prefix_v6' in sys_prop and sys_prop.mgt_prefix_v6 != '' %}
     {% set mgt_prefix_v6 = sys_prop.mgt_prefix_v6|to_network %}
     {% set mgt_v6_prefixlen = sys_prop.mgt_prefix_v6|to_prefixlen %}
-    {% set mgt_if = 'vme' if 'Juniper_EX4' in model else 'em0' %}
-    {{ mgt_if }} {
+    em0 {
         unit 0 {
             family inet6 {
                 replace: address {{ mgt_prefix_v6 }}{{ management_ip }}/{{ mgt_v6_prefixlen }};

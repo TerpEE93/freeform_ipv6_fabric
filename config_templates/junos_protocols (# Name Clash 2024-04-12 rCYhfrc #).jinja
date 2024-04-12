@@ -1,4 +1,4 @@
-{# Last updated 12 April 2024 at 14:15 EDT #}
+{# Last updated 1 Sept 2023 at 15:45 EDT #}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
@@ -191,9 +191,6 @@ replace: protocols {
             family inet6 {
                 unicast;
             }
-    {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
-            authentication-key "{{ prot_prop.bgp.auth_key }}";
-    {% endif %}
             export ( LEAF_TO_SPINE_FABRIC_OUT && BGP-AOS-Policy );
             multipath {
                 multiple-as;
@@ -236,9 +233,6 @@ replace: protocols {
             }
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
-    {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
-            authentication-key "{{ prot_prop.bgp.auth_key }}";
-    {% endif %}
             export ( LEAF_TO_SPINE_EVPN_OUT && EVPN_EXPORT )
     {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}
@@ -267,9 +261,6 @@ replace: protocols {
             family inet6 {
                 unicast;
             }
-    {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
-            authentication-key "{{ prot_prop.bgp.auth_key }}";
-    {% endif %}
             export ( SPINE_TO_LEAF_FABRIC_OUT && BGP-AOS-Policy );
             multipath {
                 multiple-as;
@@ -310,9 +301,6 @@ replace: protocols {
             }
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
-    {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
-            authentication-key "{{ prot_prop.bgp.auth_key }}";
-    {% endif %}
             export ( LEAF_TO_SPINE_EVPN_OUT )
     {% for interface_name, iface in interfaces.items() %}
         {% if not iface.get('ipv6_address') %}

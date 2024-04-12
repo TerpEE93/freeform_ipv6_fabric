@@ -1,6 +1,5 @@
 {
     "bgp": {
-        "auth_key": "$9$rjyKWXVwgUjq7-jqmfn6revW7-",
         "bfd_min_int": "1000",
         "bfd_multiplier": "3"
     },

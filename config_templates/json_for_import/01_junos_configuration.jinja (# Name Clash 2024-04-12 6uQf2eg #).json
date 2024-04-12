@@ -1,0 +1,4 @@
+{
+  "label": "01_junos_configuration.jinja",
+  "text": "{# junos_system.jinja handles the system hostname #}\n{# include \"debug.jinja\" #}\n{% include \"junos_system.jinja\" %}\n{% include \"junos_chassis.jinja\" %}\n{% include \"junos_interfaces.jinja\" %}\n{% include \"junos_forwarding_options.jinja\" %}\n{% include \"junos_policy_options.jinja\" %}\n{% include \"junos_protocols.jinja\" %}\n{% include \"junos_snmp.jinja\" %}\n{% include \"junos_routing_instances.jinja\" %}\n{% include \"junos_routing_options.jinja\" %}\n{% include \"junos_access.jinja\" %}\n{% include \"junos_filter.jinja\" %}"
+}
