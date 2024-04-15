@@ -1,4 +1,0 @@
-{
-  "label": "junos_access.jinja",
-  "text": "{% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}\n{% set mgt_vrf = sys_prop.mgt_vrf if 'mgt_vrf' in sys_prop else 'mgmt_junos' %}\nreplace: access {\n{% if 'enabled' in sys_prop.dot1x and sys_prop.dot1x.enabled %}\n    profile {{ sys_prop.dot1x.auth_profile_name }} {\n        authentication-order {{ sys_prop.dot1x.auth_method }};\n    {% if sys_prop.dot1x.auth_method == 'radius' %}\n        radius {\n            authentication-server [ {% for server in sys_prop.dot1x.radius_servers %}{{ server['host_ip'] }} {% endfor %} ]\n        }\n        {% for server in sys_prop.dot1x.radius_servers %}\n        radius-server {{ server['host_ip'] }} {\n            port {{ server['port'] }};\n            secret {{ server['secret'] }};\n            timeout {{ server['timeout'] }};\n            routing-instance {{ mgt_vrf }};\n        }\n        {% endfor %}\n    {% endif %}\n    }\n{% endif %}\n}\n{# EOF #}"
-}
