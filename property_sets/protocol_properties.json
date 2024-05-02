@@ -1,8 +1,26 @@
 {
+    "bfd": {
+        "auth": {
+            "enabled": true
+        },
+        "keychain": {
+            "0": {
+                "secret": "put-plaintext-or-$9$-here",
+                "start-time": "2024-01-01.00:00"
+            },
+            "1": {
+                "secret": "next-secret-here",
+                "start-time": "2024-06-30.23:59"
+            }
+        },
+        "min_int": "1000",
+        "multiplier": "3",
+        "auth_algo": "sha-1"
+    },
     "bgp": {
         "auth_key": "$9$rjyKWXVwgUjq7-jqmfn6revW7-",
-        "bfd_min_int": "1000",
-        "bfd_multiplier": "3"
+        "bfd_min_int": "800",
+        "bfd_multiplier": "4"
     },
     "evpn": {
         "symmetric_irb": false

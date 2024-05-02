@@ -1,4 +1,4 @@
-{# Last updated 12 April 2024 at 14:15 EDT #}
+{# Last updated 1 May 2024 at 14:45 EDT #}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {}) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
@@ -183,6 +183,8 @@ replace: protocols {
 {% endfor %}
     }
     bgp {
+{% set bfd_min_int = prot_prop.bgp.bfd_min_int if 'bfd_min_int' in prot_prop.bgp and prot_prop.bgp.bfd_min_int != '' else prot_prop.bfd.min_int %}
+{% set bfd_multiplier = prot_prop.bgp.bfd_multiplier if 'bfd_multiplier' in prot_prop.bgp and prot_prop.bgp.bfd_multiplier != '' else prot_prop.bfd.multiplier %}
         log-updown;
         graceful-restart;
 {% if 'leaf' in system_tags %}
@@ -199,8 +201,14 @@ replace: protocols {
                 multiple-as;
             }
             bfd-liveness-detection {
-                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                multiplier {{ prot_prop.bgp.bfd_multiplier }};
+                minimum-interval {{ bfd_min_int }};
+                multiplier {{ bfd_multiplier }};
+    {% if prot_prop.bfd.auth.enabled %}
+                authentication {
+                    key-chain BFD_KEYCHAIN;
+                    algorithm simple-password;
+                }
+    {% endif %}
             }
             vpn-apply-export;
     {% for interface_name, iface in interfaces.items() %}
@@ -231,8 +239,14 @@ replace: protocols {
                 }
             }
             bfd-liveness-detection {
-                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                multiplier {{ prot_prop.bgp.bfd_multiplier }};
+                minimum-interval {{ bfd_min_int }};
+                multiplier {{ bfd_multiplier }};
+    {% if prot_prop.bfd.auth.enabled %}
+                authentication {
+                    key-chain BFD_KEYCHAIN;
+                    algorithm simple-password;
+                }
+    {% endif %}
             }
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};
@@ -275,8 +289,14 @@ replace: protocols {
                 multiple-as;
             }
             bfd-liveness-detection {
-                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                multiplier {{ prot_prop.bgp.bfd_multiplier }};
+                minimum-interval {{ bfd_min_int }};
+                multiplier {{ bfd_multiplier }};
+    {% if prot_prop.bfd.auth.enabled %}
+                authentication {
+                    key-chain BFD_KEYCHAIN;
+                    algorithm simple-password;
+                }
+    {% endif %}
             }
             vpn-apply-export;
     {% for interface_name, iface in interfaces.items() %}
@@ -304,9 +324,18 @@ replace: protocols {
             family evpn {
                 signaling;
             }
+    {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
+            authentication-key "{{ prot_prop.bgp.auth_key }}";
+    {% endif %}
             bfd-liveness-detection {
-                minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                multiplier {{ prot_prop.bgp.bfd_multiplier }};
+                minimum-interval {{ bfd_min_int }};
+                multiplier {{ bfd_multiplier }};
+    {% if prot_prop.bfd.auth.enabled %}
+                authentication {
+                    key-chain BFD_KEYCHAIN;
+                    algorithm simple-password;
+                }
+    {% endif %}
             }
             vpn-apply-export;
             local-address {{ loopback_ipv6 }};

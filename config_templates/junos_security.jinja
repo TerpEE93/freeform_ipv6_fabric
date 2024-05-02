@@ -1,0 +1,17 @@
+{# Last updated 1 May 2024 at 14:45 EDT #}
+{% set prot_prop = property_sets.get('protocol_properties', {} ) %}
+security {
+    authentication-key-chains {
+        replace: key-chain BFD_KEYCHAIN {
+{% if prot_prop.bfd.auth.enabled %}
+    {% for k, v in prot_prop.bfd.keychain.items() %}
+            key {{ k }} {
+        {% for k1, v1 in v.items() %}
+                {{ k1 }} {{ v1 }};
+        {% endfor %}
+            }
+    {% endfor %}
+{% endif %}
+        }
+    }
+}

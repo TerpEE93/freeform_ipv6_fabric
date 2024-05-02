@@ -1,6 +1,21 @@
 # Release Notes
 Just trying to keep track of changes as they're made.
 
+## Version 1.1.0
+### New features
+- Add authentication to BFD.  You can enable this capability and setup your
+  keychain in the protocol_properties.json file.  This release supports the
+  `simple-password` algorithm only.
+
+### Changed behavior
+- You can now set the BFD timer and multiplier globally under the `bfd`
+  section of the protocol_properties.json file.  You can override the global
+  settings if you set values for `bfd_min_int` and `bfd_multiplier` keys in the
+  `bgp` section of the file.
+
+### Bug fixes
+- None yet.  Give me time...
+
 ## Version 1.0.0-RC2
 ### New features
 - Added the ability to set the LACP rate to slow (1 PDU every 30 seconds) for

@@ -1,4 +1,4 @@
-{# Last updated 12 April 2024 at 14:15 EDT #}
+{# Last updated 1 May 2024 at 14:45 EDT #}
 {% set vrf_vlan = property_sets.get('vrf_vlan', {} ) %}
 {% set sys_prop = property_sets.get('custom_sys_properties', {} ) %}
 {% set prot_prop = property_sets.get('protocol_properties', {} ) %}
@@ -329,6 +329,8 @@ routing-instances {
                 }
             }
         {% if ns.is_bgp and ( 'gateway_A' in system_tags or 'gateway_B' in system_tags ) %}
+            {% set bfd_min_int = prot_prop.bgp.bfd_min_int if 'bfd_min_int' in prot_prop.bgp and prot_prop.bgp.bfd_min_int != '' else prot_prop.bfd.min_int %}
+            {% set bfd_multiplier = prot_prop.bgp.bfd_multiplier if 'bfd_multiplier' in prot_prop.bgp and prot_prop.bgp.bfd_multiplier != '' else prot_prop.bfd.multiplier %}
             bgp {
                 group l3rtr {
                     type external;
@@ -351,6 +353,16 @@ routing-instances {
             {% if 'auth_key' in prot_prop.bgp and prot_prop.bgp.auth_key != '' %}
                     authentication-key "{{ prot_prop.bgp.auth_key }}";
             {% endif %}
+                    bfd-liveness-detection {
+                        minimum-interval {{ bfd_min_int }};
+                        multiplier {{ bfd_multiplier }};
+            {% if prot_prop.bfd.auth.enabled %}
+                        authentication {
+                            key-chain BFD_KEYCHAIN;
+                            algorithm simple-password;
+                        }
+            {% endif %}
+                    }
             {% for vlan in vrf_vlan.vlans %}
                 {% if vlan['vlan_name'] in ns.dev_vlan_list and 
                       vlan['member_of'] == ri['vrf_name'] and
@@ -368,10 +380,6 @@ routing-instances {
                         }
                         export ( RoutesToExt-{{ ri['vrf_name'] }}-Aggregate );
                         peer-as {{ vlan['bgp_peer_asn'] }};
-                        bfd-liveness-detection {
-                            minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                            multiplier {{ prot_prop.bgp.bfd_multiplier }};
-                        }
                     }
                 {% endif %}
                 {% if vlan['vlan_name'] in ns.dev_vlan_list and 
@@ -390,10 +398,6 @@ routing-instances {
                         }
                         export ( RoutesToExt-{{ ri['vrf_name'] }}-Aggregate );
                         peer-as {{ vlan['bgp_peer_asn'] }};
-                        bfd-liveness-detection {
-                            minimum-interval {{ prot_prop.bgp.bfd_min_int }};
-                            multiplier {{ prot_prop.bgp.bfd_multiplier }};
-                        }
                     }
                 {% endif %}
             {% endfor %}
